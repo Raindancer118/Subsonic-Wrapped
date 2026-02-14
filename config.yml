@@ -1,0 +1,30 @@
+# Global Configuration
+
+app:
+  port: 3000
+  secret: "change_me_in_production_please" # Used for session signing and encryption
+  env: "development"
+
+database:
+  path: "./data/app.db"
+
+spotify:
+  clientId: ""
+  clientSecret: ""
+  redirectUri: "http://localhost:3000/api/auth/spotify/callback"
+
+subsonic:
+  example_server:
+    url: "https://music.example.com"
+    username: "user"
+    legacyAuth: false # Set to true if server requires MD5 of password
+
+logging:
+  level: info
+
+scrobble:
+  threshold: 20 # Seconds
+
+polling:
+  spotify: 300 # Seconds (5m)
+  subsonic: 10 # Seconds
