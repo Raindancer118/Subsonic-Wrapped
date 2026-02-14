@@ -13,7 +13,7 @@ export async function verifySubsonic(url: string, username: string, token: strin
         const authParams = createAuthParams(username, token, salt, legacy);
         const testUrl = `${baseURL}/rest/ping.view?${authParams}`;
 
-        const response = await axios.get(testUrl);
+        const response = await axios.get(testUrl, { timeout: 10000 });
         return response.data['subsonic-response']?.status === 'ok';
     } catch (e) {
         console.error('Subsonic verification failed:', e);
