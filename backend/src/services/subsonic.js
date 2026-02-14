@@ -8,6 +8,7 @@ const axios_1 = __importDefault(require("axios"));
 const database_1 = __importDefault(require("../database"));
 const encryption_1 = require("../utils/encryption");
 const subsonic_1 = require("../utils/subsonic");
+const config_1 = __importDefault(require("../config"));
 const crypto_1 = __importDefault(require("crypto"));
 // State map to track playback for scrobbling
 const userPlayerStats = new Map();
@@ -54,8 +55,9 @@ async function pollSubsonicNowPlaying() {
                     if (currentState && currentState.vendorId === trackData.vendor_id) {
                         // Continued playback
                         const timePlayed = Date.now() - currentState.detectedAt;
-                        // Scrobble rule: > 20 seconds (User Request)
-                        if (!currentState.scrobbled && timePlayed > 20000) {
+                        // Scrobble rule: > config threshold (20s default)
+                        const thresholdMs = config_1.default.scrobble.threshold * 1000;
+                        if (!currentState.scrobbled && timePlayed > thresholdMs) {
                             console.log(`Scrobbling Subsonic track: ${trackData.title} for user ${user.id}`);
                             database_1.default.prepare(`
                                 INSERT OR IGNORE INTO play_history (user_id, track_id, played_at, source)

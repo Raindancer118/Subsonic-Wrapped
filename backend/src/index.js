@@ -60,8 +60,8 @@ if (config_1.default.app.env !== 'test') { // Don't start in tests
         (0, subsonic_1.pollSubsonicNowPlaying)().catch(console.error);
     }, 5000);
     // Schedule
-    setInterval(spotify_1.pollSpotifyRecentlyPlayed, 5 * 60 * 1000); // 5 mins
-    setInterval(subsonic_1.pollSubsonicNowPlaying, 10 * 1000); // 10s for high-resolution polling (20s feature)
+    setInterval(spotify_1.pollSpotifyRecentlyPlayed, config_1.default.polling.spotify * 1000);
+    setInterval(subsonic_1.pollSubsonicNowPlaying, config_1.default.polling.subsonic * 1000);
 }
 // Serve Frontend in Production
 if (config_1.default.app.env === 'production') {

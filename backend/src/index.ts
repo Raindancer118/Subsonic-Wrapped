@@ -64,8 +64,8 @@ if (config.app.env !== 'test') { // Don't start in tests
     }, 5000);
 
     // Schedule
-    setInterval(pollSpotifyRecentlyPlayed, 5 * 60 * 1000); // 5 mins
-    setInterval(pollSubsonicNowPlaying, 10 * 1000); // 10s for high-resolution polling (20s feature)
+    setInterval(pollSpotifyRecentlyPlayed, config.polling.spotify * 1000);
+    setInterval(pollSubsonicNowPlaying, config.polling.subsonic * 1000);
 }
 
 // Serve Frontend in Production

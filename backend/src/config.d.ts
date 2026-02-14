@@ -22,6 +22,13 @@ export interface AppConfig {
     logging: {
         level: string;
     };
+    scrobble: {
+        threshold: number;
+    };
+    polling: {
+        spotify: number;
+        subsonic: number;
+    };
 }
 declare let config: AppConfig;
 export default config;

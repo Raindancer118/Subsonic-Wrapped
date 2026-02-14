@@ -2,6 +2,7 @@ import axios from 'axios';
 import db from '../database';
 import { decrypt } from '../utils/encryption';
 import { createAuthParams } from '../utils/subsonic';
+import config from '../config';
 import crypto from 'crypto';
 
 interface SubsonicAuth {
@@ -73,8 +74,9 @@ export async function pollSubsonicNowPlaying() {
                         // Continued playback
                         const timePlayed = Date.now() - currentState.detectedAt;
 
-                        // Scrobble rule: > 20 seconds (User Request)
-                        if (!currentState.scrobbled && timePlayed > 20000) {
+                        // Scrobble rule: > config threshold (20s default)
+                        const thresholdMs = config.scrobble.threshold * 1000;
+                        if (!currentState.scrobbled && timePlayed > thresholdMs) {
                             console.log(`Scrobbling Subsonic track: ${trackData.title} for user ${user.id}`);
                             db.prepare(`
                                 INSERT OR IGNORE INTO play_history (user_id, track_id, played_at, source)
