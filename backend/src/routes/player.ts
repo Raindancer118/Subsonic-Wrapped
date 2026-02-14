@@ -25,7 +25,8 @@ router.get('/current', async (req, res) => {
         try {
             const accessToken = decrypt(user.spotify_access_token);
             const response = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
-                headers: { Authorization: `Bearer ${accessToken}` }
+                headers: { Authorization: `Bearer ${accessToken}` },
+                timeout: 3000
             });
 
             if (response.data && response.data.item) {
@@ -59,7 +60,7 @@ router.get('/current', async (req, res) => {
                 const params = createAuthParams(subUser, token, salt);
                 const baseURL = user.subsonic_url.endsWith('/') ? user.subsonic_url.slice(0, -1) : user.subsonic_url;
 
-                const response = await axios.get(`${baseURL}/rest/getNowPlaying.view?${params}`);
+                const response = await axios.get(`${baseURL}/rest/getNowPlaying.view?${params}`, { timeout: 3000 });
                 const nowPlaying = response.data['subsonic-response']?.nowPlaying?.entry;
 
                 if (nowPlaying) {

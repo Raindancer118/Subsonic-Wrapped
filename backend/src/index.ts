@@ -66,6 +66,10 @@ app.get('/api', (req: Request, res: Response) => {
     res.send('Spotify/Subsonic Stats API');
 });
 
+app.get('/health', (req: Request, res: Response) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // Start Background Jobs
 if (config.app.env !== 'test') { // Don't start in tests
     console.log('Starting background polling services...');
