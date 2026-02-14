@@ -30,6 +30,7 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 
 # Copy other necessary files
 COPY backend/.env.example ./.env
+COPY config.yml /config.yml
 # COPY backend/database.sqlite ./database.sqlite # Don't copy DB, use volume
 
 EXPOSE 3000
