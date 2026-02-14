@@ -65,11 +65,12 @@ async function fetchRecentlyPlayed(userId: number, accessToken: string) {
 
     const items = response.data.items;
     const insertTrack = db.prepare(`
-        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url)
-        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url)
+        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, raw_data)
+        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @raw_data)
         ON CONFLICT(vendor_id) DO UPDATE SET 
             image_url = excluded.image_url,
-            title = excluded.title
+            title = excluded.title,
+            raw_data = excluded.raw_data
         RETURNING id
     `);
 
@@ -89,7 +90,8 @@ async function fetchRecentlyPlayed(userId: number, accessToken: string) {
                 artist: track.artists.map((a: any) => a.name).join(', '),
                 album: track.album.name,
                 duration_ms: track.duration_ms,
-                image_url: track.album.images[0]?.url || null
+                image_url: track.album.images[0]?.url || null,
+                raw_data: JSON.stringify(track)
             };
 
             const trackRow = insertTrack.get(trackData) as { id: number } | undefined;

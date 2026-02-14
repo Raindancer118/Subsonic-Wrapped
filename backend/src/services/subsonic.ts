@@ -62,12 +62,13 @@ export async function pollSubsonicNowPlaying() {
                         bitrate: entry.bitrate || null,
                         codec: entry.contentType || entry.suffix || null,
                         track_number: entry.track || null,
-                        disc_number: entry.discNumber || null
+                        disc_number: entry.discNumber || null,
+                        raw_data: JSON.stringify(entry)
                     };
 
                     const insertTrack = db.prepare(`
-                        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, bitrate, codec, track_number, disc_number)
-                        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @bitrate, @codec, @track_number, @disc_number)
+                        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, bitrate, codec, track_number, disc_number, raw_data)
+                        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @bitrate, @codec, @track_number, @disc_number, @raw_data)
                         ON CONFLICT(vendor_id) DO UPDATE SET 
                             image_url = excluded.image_url,
                             title = excluded.title,
@@ -76,7 +77,8 @@ export async function pollSubsonicNowPlaying() {
                             year = excluded.year,
                             genre = excluded.genre,
                             bitrate = excluded.bitrate,
-                            codec = excluded.codec
+                            codec = excluded.codec,
+                            raw_data = excluded.raw_data
                         RETURNING id
                      `);
 
