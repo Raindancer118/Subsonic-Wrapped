@@ -5,7 +5,7 @@ services:
     build: .
     image: ghcr.io/tom/subsonic-wrapped:latest
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     volumes:
       - ./data:/app/data
       - ./config.yml:/config.yml
