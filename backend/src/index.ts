@@ -31,7 +31,19 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+import SqliteStore from 'better-sqlite3-session-store';
+import db from './database';
+
+const SessionStore = (SqliteStore as any)(session);
+
 app.use(session({
+    store: new SessionStore({
+        client: db,
+        expired: {
+            clear: true,
+            intervalMs: 900000 // 15min
+        }
+    }),
     secret: config.app.secret,
     resave: false,
     saveUninitialized: false,

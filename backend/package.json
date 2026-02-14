@@ -25,6 +25,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "passport-spotify": "^2.0.0",
+    "better-sqlite3-session-store": "^0.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
