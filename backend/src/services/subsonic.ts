@@ -21,6 +21,7 @@ const userPlayerStats = new Map<number, {
 
 export async function pollSubsonicNowPlaying() {
     const users = db.prepare('SELECT id, username, subsonic_url, subsonic_auth FROM users WHERE subsonic_url IS NOT NULL').all() as any[];
+    const now = Date.now();
 
     for (const user of users) {
         if (!user.subsonic_auth) continue;
@@ -39,7 +40,8 @@ export async function pollSubsonicNowPlaying() {
 
             const params = createAuthParams(subUser, token, salt);
 
-            const response = await axios.get(`${baseURL}/rest/getNowPlaying.view?${params}`);
+            // Timeout added to prevent accumulation of hangs
+            const response = await axios.get(`${baseURL}/rest/getNowPlaying.view?${params}`, { timeout: 10000 });
             const nowPlaying = response.data['subsonic-response']?.nowPlaying?.entry;
 
             if (nowPlaying) {
@@ -47,65 +49,103 @@ export async function pollSubsonicNowPlaying() {
                 const entry = entries.find((e: any) => e.username === subUser);
 
                 if (entry) {
+                    // Extract Metadata
                     const trackData = {
                         vendor_id: `subsonic:track:${entry.id}`,
                         title: entry.title,
                         artist: entry.artist,
                         album: entry.album,
                         duration_ms: entry.duration ? entry.duration * 1000 : 0,
-                        image_url: entry.coverArt ? `${baseURL}/rest/getCoverArt.view?id=${entry.coverArt}&${params}` : null
+                        image_url: entry.coverArt ? `${baseURL}/rest/getCoverArt.view?id=${entry.coverArt}&${params}` : null,
+                        year: entry.year || null,
+                        genre: entry.genre || null,
+                        bitrate: entry.bitrate || null,
+                        codec: entry.contentType || entry.suffix || null,
+                        track_number: entry.track || null,
+                        disc_number: entry.discNumber || null
                     };
 
                     const insertTrack = db.prepare(`
-                        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url)
-                        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url)
+                        INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, bitrate, codec, track_number, disc_number)
+                        VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @bitrate, @codec, @track_number, @disc_number)
                         ON CONFLICT(vendor_id) DO UPDATE SET 
                             image_url = excluded.image_url,
-                            title = excluded.title
+                            title = excluded.title,
+                            album = excluded.album,
+                            artist = excluded.artist,
+                            year = excluded.year,
+                            genre = excluded.genre,
+                            bitrate = excluded.bitrate,
+                            codec = excluded.codec
                         RETURNING id
                      `);
 
                     const trackRow = insertTrack.get(trackData) as { id: number };
 
-                    // Stateful Scrobbling Logic
-                    const currentState = userPlayerStats.get(user.id);
+                    // Stateful Logic
+                    let currentState = userPlayerStats.get(user.id);
 
-                    if (currentState && currentState.vendorId === trackData.vendor_id) {
-                        // Continued playback
-                        const timePlayed = Date.now() - currentState.detectedAt;
+                    // Detect new track
+                    if (!currentState || currentState.vendorId !== trackData.vendor_id) {
+                        // Start new tracking session
 
-                        // Scrobble rule: > config threshold (20s default)
-                        const thresholdMs = config.scrobble.threshold * 1000;
-                        if (!currentState.scrobbled && timePlayed > thresholdMs) {
-                            console.log(`Scrobbling Subsonic track: ${trackData.title} for user ${user.id}`);
-                            db.prepare(`
-                                INSERT OR IGNORE INTO play_history (user_id, track_id, played_at, source)
-                                VALUES (?, ?, ?, 'subsonic')
-                             `).run(user.id, currentState.trackId, new Date().toISOString());
+                        // Insert play_history immediately with 0 duration
+                        const insertPlay = db.prepare(`
+                            INSERT INTO play_history (user_id, track_id, played_at, source, listened_duration_ms)
+                            VALUES (?, ?, ?, 'subsonic', 0)
+                            RETURNING id, played_at
+                        `).get(user.id, trackRow.id, new Date().toISOString()) as { id: number, played_at: string };
 
-                            currentState.scrobbled = true;
-                            userPlayerStats.set(user.id, currentState);
-                        }
-                    } else {
-                        // New track detected
-                        userPlayerStats.set(user.id, {
+                        currentState = {
                             vendorId: trackData.vendor_id,
                             trackId: trackRow.id,
-                            detectedAt: Date.now(),
+                            detectedAt: now,
+                            // Use lastPollTime to track precise deltas?
+                            // For simplicity, we assume we poll every X seconds. 
+                            // Better: Store timestamp of last update.
+                            lastUpdateAt: now,
+                            playHistoryId: insertPlay.id,
                             durationMs: trackData.duration_ms,
                             scrobbled: false
-                        });
+                        };
+                        userPlayerStats.set(user.id, currentState as any); // Update type if needed, or cast
+
+                    } else {
+                        // Continued playback
+                        // Calculate delta since last update
+                        // We use the simpler approach: add the polling interval? 
+                        // Or better: diff from lastUpdateAt
+                        const lastUpdate = (currentState as any).lastUpdateAt || currentState.detectedAt;
+                        const delta = now - lastUpdate;
+
+                        // Cap delta to reasonable amount (e.g. if we missed a poll, don't add 5 hours. Max 2x poll interval)
+                        const maxDelta = (config.polling.subsonic * 1000) * 2.5;
+                        const actualDelta = Math.min(delta, maxDelta);
+
+                        if (actualDelta > 0) {
+                            db.prepare(`
+                                UPDATE play_history 
+                                SET listened_duration_ms = listened_duration_ms + ? 
+                                WHERE id = ?
+                            `).run(actualDelta, (currentState as any).playHistoryId);
+                        }
+
+                        // Update state
+                        (currentState as any).lastUpdateAt = now;
+                        userPlayerStats.set(user.id, currentState);
+
+                        // Legacy "Scrobbled" boolean check (optional, but good for logs)
+                        // Verify total listened time from DB?
+                        // Or just use our running total?
+                        // We'll trust the DB update.
                     }
                 } else {
-                    // User not playing anything?
-                    // We could clear state, but maybe they paused?
-                    // If we want to be strict, we clear. If we want to allow resumption, we keep it for a bit?
-                    // For now, let's keep it (or key it by timeout?). 
-                    // Simple approach: if gone, we assume stopped. But "NowPlaying" is ephemeral.
-                    // If they stop, we won't see it next time.
+                    // User not found in NowPlaying -> Stopped
+                    userPlayerStats.delete(user.id);
                 }
             } else {
-                // Determine if we should clear state?
+                // No entries -> Stopped
+                userPlayerStats.delete(user.id);
             }
         } catch (e) {
             console.error(`Error polling Subsonic for user ${user.id}:`, e);

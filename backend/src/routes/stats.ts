@@ -8,11 +8,10 @@ router.get('/summary', (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
     const userId = (req.user as any).id;
 
-    // Total Time (All Time)
+    // Total Time (All Time) -> Using actual listened duration
     const totalTime = db.prepare(`
-        SELECT SUM(t.duration_ms) as total_ms 
+        SELECT SUM(ph.listened_duration_ms) as total_ms 
         FROM play_history ph
-        JOIN tracks t ON ph.track_id = t.id
         WHERE ph.user_id = ?
     `).get(userId) as { total_ms: number };
 
@@ -20,9 +19,8 @@ router.get('/summary', (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayTime = db.prepare(`
-        SELECT SUM(t.duration_ms) as total_ms
+        SELECT SUM(ph.listened_duration_ms) as total_ms
         FROM play_history ph
-        JOIN tracks t ON ph.track_id = t.id
         WHERE ph.user_id = ? AND ph.played_at >= ?
     `).get(userId, today.toISOString()) as { total_ms: number };
 
