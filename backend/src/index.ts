@@ -38,6 +38,8 @@ import db from './database';
 
 const SessionStore = (SqliteStore as any)(session);
 
+app.set('trust proxy', 1); // Trust first proxy
+
 app.use(session({
     store: new SessionStore({
         client: db,
@@ -50,7 +52,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: config.app.env === 'production',
+        secure: false, // Allow over HTTP for now (User accessing via IP)
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
