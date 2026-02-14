@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Music, Server, Key } from 'lucide-react';
+import { Music, Server } from 'lucide-react';
 
 const Login: React.FC = () => {
     const { login, registerSubsonic } = useAuth();
