@@ -71,7 +71,7 @@ if (config.app.env !== 'test') { // Don't start in tests
 // Serve Frontend in Production
 if (config.app.env === 'production') {
     app.use(express.static(path.join(__dirname, '../public')));
-    app.get('*', (req: Request, res: Response) => {
+    app.get(/.*/, (req: Request, res: Response) => {
         res.sendFile(path.join(__dirname, '../public/index.html'));
     });
 }
