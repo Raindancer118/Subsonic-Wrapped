@@ -24,7 +24,9 @@ initDatabase();
 
 // Middleware
 app.use(helmet({
-    contentSecurityPolicy: false // Disable CSP for now to allow external images/scripts if needed avoiding strict headaches in dev
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: false,
+    originAgentCluster: false
 }));
 app.use(cors({
     origin: 'http://localhost:5173', // Vite dev server
