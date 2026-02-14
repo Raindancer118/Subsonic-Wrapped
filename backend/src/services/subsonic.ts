@@ -17,6 +17,8 @@ const userPlayerStats = new Map<number, {
     detectedAt: number;
     durationMs: number;
     scrobbled: boolean;
+    playHistoryId: number;
+    lastUpdateAt: number;
 }>();
 
 export async function pollSubsonicNowPlaying() {
