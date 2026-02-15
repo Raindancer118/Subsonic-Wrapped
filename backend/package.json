@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register 'test/**/*.test.ts'",
+    "test": "TS_NODE_PROJECT=tsconfig.test.json mocha -r ts-node/register 'test/**/*.test.ts'",
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
