@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../database';
 import { z } from 'zod';
+import { enrichTrack } from '../services/spotify';
 
 const router = express.Router();
 
@@ -165,6 +166,9 @@ const submitListensHandler = (req: any, res: any) => {
             `).run(user.id, trackRow.id, listenedAt.toISOString(), 'listenbrainz', duration || 0);
 
             console.log(`[ListenBrainz] Insert result: ${result.changes} rows affected. User: ${user.id}, Track: ${trackRow.id}`);
+
+            // Trigger background enrichment (fire and forget)
+            enrichTrack(trackRow.id, meta.artist_name, meta.track_name).catch(err => console.error(err));
         }
 
         res.status(200).json({ status: 'ok', listened_count: insertedTracks.length });

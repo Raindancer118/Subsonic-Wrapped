@@ -5,6 +5,124 @@ import config from '../config';
 
 const SPOTIFY_API = 'https://api.spotify.com/v1';
 
+// Client Credentials Token State
+let clientAccessToken: string | null = null;
+let clientTokenExpiresAt: number = 0;
+
+export const getSpotifyClientToken = async (): Promise<string | null> => {
+    if (clientAccessToken && Date.now() < clientTokenExpiresAt) {
+        return clientAccessToken;
+    }
+
+    if (!config.spotify.clientId || !config.spotify.clientSecret) {
+        // console.warn('Spotify Client ID or Secret not configured.');
+        return null;
+    }
+
+    try {
+        const params = new URLSearchParams();
+        params.append('grant_type', 'client_credentials');
+        params.append('client_id', config.spotify.clientId);
+        params.append('client_secret', config.spotify.clientSecret);
+
+        const res = await axios.post('https://accounts.spotify.com/api/token', params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        clientAccessToken = res.data.access_token;
+        const expiresIn = res.data.expires_in || 3600;
+        clientTokenExpiresAt = Date.now() + (expiresIn * 1000) - 60000;
+
+        console.log('Got new Spotify Client Access Token');
+        return clientAccessToken;
+    } catch (e: any) {
+        console.error('Failed to get Spotify Client Token:', e.message);
+        return null;
+    }
+};
+
+export const searchSpotifyTrack = async (artist: string, title: string) => {
+    const token = await getSpotifyClientToken();
+    if (!token) return null;
+
+    try {
+        // Sanitize query
+        const qArtist = artist.replace(/[^\w\s]/gi, '');
+        const qTitle = title.replace(/[^\w\s]/gi, '');
+
+        const query = `track:${qTitle} artist:${qArtist}`;
+        const res = await axios.get(`${SPOTIFY_API}/search`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                q: query,
+                type: 'track',
+                limit: 1
+            }
+        });
+
+        if (res.data.tracks && res.data.tracks.items.length > 0) {
+            return res.data.tracks.items[0];
+        }
+    } catch (e: any) {
+        console.error(`Spotify Search Failed for ${artist} - ${title}:`, e.message);
+    }
+    return null;
+};
+
+const getArtistGenre = async (artistId: string) => {
+    const token = await getSpotifyClientToken();
+    if (!token) return null;
+    try {
+        const res = await axios.get(`${SPOTIFY_API}/artists/${artistId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.genres && res.data.genres.length > 0) {
+            // Capitalize
+            return res.data.genres[0].charAt(0).toUpperCase() + res.data.genres[0].slice(1);
+        }
+    } catch (e) { }
+    return null;
+};
+
+export const enrichTrack = async (trackId: number, artist: string, title: string) => {
+    try {
+        const track = db.prepare('SELECT image_url, year, genre FROM tracks WHERE id = ?').get(trackId) as any;
+        // If we have everything, skip
+        if (track.image_url && track.year && track.genre) return;
+
+        // If we are missing something, search
+        console.log(`[Enricher] Searching Spotify for: ${artist} - ${title}`);
+        const spotifyTrack = await searchSpotifyTrack(artist, title);
+
+        if (spotifyTrack) {
+            const imageUrl = track.image_url || spotifyTrack.album.images[0]?.url || null;
+
+            let year = track.year;
+            if (!year && spotifyTrack.album.release_date) {
+                year = parseInt(spotifyTrack.album.release_date.split('-')[0]);
+            }
+
+            let genre = track.genre;
+            if (!genre && spotifyTrack.artists.length > 0) {
+                genre = await getArtistGenre(spotifyTrack.artists[0].id);
+            }
+
+            if (imageUrl !== track.image_url || year !== track.year || genre !== track.genre) {
+                db.prepare(`
+                    UPDATE tracks 
+                    SET image_url = COALESCE(image_url, ?),
+                        year = COALESCE(year, ?),
+                        genre = COALESCE(genre, ?)
+                    WHERE id = ?
+                `).run(imageUrl, year, genre, trackId);
+                console.log(`[Enricher] Updated track ${trackId} | Year: ${year}, Genre: ${genre}, Image: ${!!imageUrl}`);
+            }
+        }
+    } catch (e) {
+        console.error('[Enricher] Error:', e);
+    }
+};
+
 async function refreshAccessToken(userId: number, refreshToken: string): Promise<string | null> {
     try {
         const params = new URLSearchParams();
