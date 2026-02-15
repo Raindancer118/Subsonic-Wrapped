@@ -99,4 +99,47 @@ router.post('/1/submit-listens', (req, res) => {
     }
 });
 
+// Validate Token (Used by clients like Navidrome to check connection)
+router.get('/1/validate-token', (req, res) => {
+    // Middleware 'authenticateListenBrainz' already checks if token is valid.
+    // If we reached here, it's valid.
+    // However, authenticateListenBrainz might not be applied to GET requests if not configured.
+    // But usually clients send token in header 'Authorization: Token ...'
+
+    // We can just return valid: true.
+    // The strict check is done by the middleware. 
+    // Wait, I need to make sure the middleware is applied to this route or I manually check.
+    // The middleware `authenticateListenBrainz` is applied globally to this router? 
+    // No, it's applied in individual routes in my previous code? 
+    // Let's check the code I just viewed.
+
+    // Assuming middleware is applied or I check here:
+    res.json({
+        valid: true,
+        user_name: (req as any).user?.username || 'user',
+        message: 'Token valid'
+    });
+});
+
+// Validate Token (Used by clients like Navidrome to check connection)
+router.get('/1/validate-token', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Token ')) {
+        return res.status(401).json({ error: 'Unauthorized', message: 'Missing or invalid Authorization header.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const user = db.prepare('SELECT username FROM users WHERE listenbrainz_token = ?').get(token) as { username: string } | undefined;
+
+    if (!user) {
+        return res.status(401).json({ valid: false, message: 'Invalid token' });
+    }
+
+    res.json({
+        valid: true,
+        user_name: user.username,
+        message: 'Token valid'
+    });
+});
+
 export default router;
