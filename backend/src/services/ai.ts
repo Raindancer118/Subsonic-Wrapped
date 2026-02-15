@@ -105,7 +105,7 @@ export class AIService {
         try {
             if (config.provider === 'gemini') {
                 const genAI = new GoogleGenerativeAI(config.key);
-                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
                 const result = await model.generateContent(fullPrompt);
                 const response = await result.response;
                 return response.text();
@@ -135,7 +135,7 @@ export class AIService {
         try {
             if (provider === 'gemini') {
                 const genAI = new GoogleGenerativeAI(key);
-                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
                 await model.generateContent("Hello");
                 return true;
             } else if (provider === 'groq') {
@@ -147,8 +147,9 @@ export class AIService {
                 return true;
             }
             return false;
-        } catch (e) {
-            console.error("Test Connection Failed:", e);
+            return false;
+        } catch (e: any) {
+            console.error("Test Connection Failed Detailed:", e.message, e.response?.data);
             return false;
         }
     }

@@ -62,7 +62,8 @@ router.post('/ai/test', async (req, res) => {
         if (success) {
             res.json({ success: true, message: 'Connection successful!' });
         } else {
-            res.status(400).json({ success: false, error: 'Connection failed. Please check your key.' });
+            console.error('AI Connection Test Failed for provider:', provider); // Debug log
+            res.status(400).json({ success: false, error: 'Connection failed. Check server logs for details.' });
         }
     } catch (error: any) {
         console.error('Error testing AI connection:', error);
