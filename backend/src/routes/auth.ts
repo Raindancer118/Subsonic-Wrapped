@@ -89,17 +89,28 @@ router.post('/register/subsonic', async (req, res) => {
         }
 
         // Create User
+        // Create User (without Subsonic details in users table)
         const hash = await bcrypt.hash(password, 10);
+
         const authData = JSON.stringify({
             subsonicUser,
-            password: encrypt(subsonicPass) // Store encrypted password to regenerate token/salt dynamically
+            password: encrypt(subsonicPass)
         });
 
         const lbToken = crypto.randomBytes(16).toString('hex');
 
-        const result = db.prepare('INSERT INTO users (username, password_hash, subsonic_url, subsonic_auth, listenbrainz_token) VALUES (?, ?, ?, ?, ?)').run(username, hash, subsonicUrl, authData, lbToken);
+        // Transaction to ensure both user and server are created
+        const createUserTx = db.transaction(() => {
+            const result = db.prepare('INSERT INTO users (username, password_hash, listenbrainz_token) VALUES (?, ?, ?)').run(username, hash, lbToken);
+            const userId = result.lastInsertRowid as number;
 
-        const user = { id: result.lastInsertRowid, username, listenbrainz_token: lbToken };
+            db.prepare('INSERT INTO subsonic_servers (user_id, name, url, auth) VALUES (?, ?, ?, ?)').run(userId, 'Primary Server', subsonicUrl, authData);
+
+            return { id: userId, username, listenbrainz_token: lbToken };
+        });
+
+        const user = createUserTx();
+
         req.login(user, (err) => {
             if (err) return res.status(500).json({ error: 'Login failed after register' });
             res.json({ user });
