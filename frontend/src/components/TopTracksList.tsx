@@ -12,9 +12,10 @@ interface Track {
 
 interface TopTracksListProps {
     tracks: Track[];
+    onTrackClick: (id: number) => void;
 }
 
-const TopTracksList: React.FC<TopTracksListProps> = ({ tracks }) => {
+const TopTracksList: React.FC<TopTracksListProps> = ({ tracks, onTrackClick }) => {
     if (!tracks || tracks.length === 0) {
         return <div className="text-gray-500 text-sm">No track data available for this period.</div>;
     }
@@ -26,7 +27,11 @@ const TopTracksList: React.FC<TopTracksListProps> = ({ tracks }) => {
             </h2>
             <div className="space-y-3">
                 {tracks.map((track, index) => (
-                    <div key={track.id} className="flex items-center p-2 hover:bg-gray-700 rounded-lg transition-colors group cursor-pointer">
+                    <div
+                        key={track.id}
+                        onClick={() => onTrackClick(track.id)}
+                        className="flex items-center p-2 hover:bg-gray-700 rounded-lg transition-colors group cursor-pointer"
+                    >
                         <div className="w-8 text-center text-gray-500 font-bold mr-3">{index + 1}</div>
                         <div className="w-12 h-12 flex-shrink-0 bg-gray-900 rounded overflow-hidden mr-4">
                             {track.image_url ? (

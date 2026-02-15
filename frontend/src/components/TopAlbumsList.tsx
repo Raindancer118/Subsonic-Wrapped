@@ -9,9 +9,10 @@ interface Album {
 
 interface TopAlbumsListProps {
     albums: Album[];
+    onAlbumClick: (album: string, artist: string) => void;
 }
 
-const TopAlbumsList: React.FC<TopAlbumsListProps> = ({ albums }) => {
+const TopAlbumsList: React.FC<TopAlbumsListProps> = ({ albums, onAlbumClick }) => {
     if (!albums || albums.length === 0) {
         return <div className="text-gray-500 text-sm">No album data available for this period.</div>;
     }
@@ -23,7 +24,11 @@ const TopAlbumsList: React.FC<TopAlbumsListProps> = ({ albums }) => {
             </h2>
             <div className="grid grid-cols-2 gap-4">
                 {albums.slice(0, 6).map((album, index) => (
-                    <div key={index} className="bg-gray-900 rounded-lg p-3 hover:bg-gray-750 transition-colors group cursor-pointer">
+                    <div
+                        key={index}
+                        onClick={() => onAlbumClick(album.album, album.artist)}
+                        className="bg-gray-900 rounded-lg p-3 hover:bg-gray-750 transition-colors group cursor-pointer"
+                    >
                         <div className="aspect-square bg-gray-800 rounded mb-3 overflow-hidden shadow-md">
                             {album.image_url ? (
                                 <img src={album.image_url} alt={album.album} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />

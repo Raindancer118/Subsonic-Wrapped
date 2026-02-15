@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import TimeRangeSelector from '../components/TimeRangeSelector';
 import TopTracksList from '../components/TopTracksList';
 import TopAlbumsList from '../components/TopAlbumsList';
+import DetailModal from '../components/DetailModal';
 
 const Dashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -16,6 +17,8 @@ const Dashboard: React.FC = () => {
     const [topTracks, setTopTracks] = useState<any[]>([]);
     const [topAlbums, setTopAlbums] = useState<any[]>([]);
     const [range, setRange] = useState<'today' | '7d' | '30d' | 'year' | 'all'>('7d'); // Default to 7 days for interesting data
+
+    const [selectedDetail, setSelectedDetail] = useState<{ type: 'track' | 'artist' | 'album', data: any } | null>(null);
 
     const fetchData = async () => {
         try {
@@ -38,6 +41,33 @@ const Dashboard: React.FC = () => {
             setTopAlbums(albumsRes.data);
         } catch (e) {
             console.error('Failed to fetch dashboard data', e);
+        }
+    };
+
+    const handleTrackClick = async (id: number) => {
+        try {
+            const res = await client.get(`/stats/track/${id}`);
+            setSelectedDetail({ type: 'track', data: res.data });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleArtistClick = async (name: string) => {
+        try {
+            const res = await client.get(`/stats/artist/${encodeURIComponent(name)}`);
+            setSelectedDetail({ type: 'artist', data: res.data });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleAlbumClick = async (album: string, artist: string) => {
+        try {
+            const res = await client.get(`/stats/album/${encodeURIComponent(album)}?artist=${encodeURIComponent(artist)}`);
+            setSelectedDetail({ type: 'album', data: res.data });
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -106,8 +136,18 @@ const Dashboard: React.FC = () => {
                                     Now Playing on {current.source}
                                 </div>
                                 <h2 className="text-3xl font-bold mb-1 line-clamp-1">{current.track.title}</h2>
-                                <p className="text-xl text-gray-300 mb-2">{current.track.artist}</p>
-                                <p className="text-sm text-gray-400">{current.track.album}</p>
+                                <p
+                                    className="text-xl text-gray-300 mb-2 cursor-pointer hover:text-white hover:underline"
+                                    onClick={() => handleArtistClick(current.track.artist)}
+                                >
+                                    {current.track.artist}
+                                </p>
+                                <p
+                                    className="text-sm text-gray-400 cursor-pointer hover:text-white hover:underline"
+                                    onClick={() => handleAlbumClick(current.track.album, current.track.artist)}
+                                >
+                                    {current.track.album}
+                                </p>
                                 {current.track.bitrate && (
                                     <div className="mt-2 inline-block px-2 py-1 bg-gray-700 rounded text-xs font-mono text-gray-300">
                                         {current.track.codec} / {current.track.bitrate}kbps
@@ -275,17 +315,21 @@ const Dashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Top Tracks */}
-                <TopTracksList tracks={topTracks} />
+                <TopTracksList tracks={topTracks} onTrackClick={handleTrackClick} />
 
                 {/* Top Albums */}
-                <TopAlbumsList albums={topAlbums} />
+                <TopAlbumsList albums={topAlbums} onAlbumClick={handleAlbumClick} />
 
                 {/* Recent History (Always shown, maybe filtered in future, but conventionally filtered history is strictly history) */}
                 <div className="bg-gray-800 rounded-xl p-6">
                     <h3 className="text-lg font-semibold mb-4">Recently Played</h3>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {recent.map((item: any, i: number) => (
-                            <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded transition-colors group">
+                            <div
+                                key={i}
+                                className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded transition-colors group cursor-pointer"
+                                onClick={() => handleTrackClick(item.id)}
+                            >
                                 {item.image_url ? (
                                     <img src={item.image_url} className="w-10 h-10 rounded shadow" />
                                 ) : (
@@ -306,6 +350,13 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Detail Modal */}
+            <DetailModal
+                type={selectedDetail?.type || null}
+                data={selectedDetail?.data}
+                onClose={() => setSelectedDetail(null)}
+            />
         </div>
     );
 };;

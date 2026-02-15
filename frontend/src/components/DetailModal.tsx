@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Clock, PlayCircle, Calendar, Disc } from 'lucide-react';
+import { X, PlayCircle, Calendar, Disc } from 'lucide-react';
 
 interface DetailModalProps {
     type: 'track' | 'artist' | 'album' | null;
@@ -9,12 +9,6 @@ interface DetailModalProps {
 
 const DetailModal: React.FC<DetailModalProps> = ({ type, data, onClose }) => {
     if (!type || !data) return null;
-
-    const formatMs = (ms: number) => {
-        const minutes = Math.floor(ms / 60000);
-        const seconds = ((ms % 60000) / 1000).toFixed(0);
-        return `${minutes}m ${seconds}s`;
-    };
 
     const formatHours = (ms: number) => {
         return (ms / (1000 * 60 * 60)).toFixed(1) + ' hrs';
