@@ -19,8 +19,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-        with:
-          fetch-depth: 0
       
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -60,10 +58,18 @@ jobs:
           FILES_CHANGED=$(git diff --name-only $PREVIOUS_TAG..HEAD | head -30)
           DIFF_STATS=$(git diff --stat $PREVIOUS_TAG..HEAD)
           
-          CONTEXT="Repository: ${{ github.repository }}\nPrevious: $PREVIOUS_TAG\nCurrent: $CURRENT_TAG\n\nCommits:\n$COMMITS\n\nFiles:\n$FILES_CHANGED\n\nStats:\n$DIFF_STATS"
-          
-          ESCAPED_CONTEXT=$(echo "$CONTEXT" | jq -Rs .)
-          
+          # Build context using jq to handle escaping safely
+          JSON_CONTEXT=$(jq -n \
+            --arg repo "${{ github.repository }}" \
+            --arg prev "$PREVIOUS_TAG" \
+            --arg curr "$CURRENT_TAG" \
+            --arg commits "$COMMITS" \
+            --arg files "$FILES_CHANGED" \
+            --arg stats "$DIFF_STATS" \
+            '{repository: $repo, previous_tag: $prev, current_tag: $curr, commits: $commits, files: $files, diff_stats: $stats}')
+
+          # Generate notes using GitHub Models API
+          # Note: GITHUB_TOKEN might need specific permissions or a PAT with GitHub Models access
           RELEASE_NOTES=$(curl -s -X POST https://models.inference.ai.azure.com/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -75,7 +81,7 @@ jobs:
                 },
                 {
                   \"role\": \"user\",
-                  \"content\": $ESCAPED_CONTEXT
+                  \"content\": $(echo "$JSON_CONTEXT" | jq -Rs .)
                 }
               ],
               \"model\": \"gpt-4o\",
