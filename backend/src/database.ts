@@ -62,6 +62,16 @@ export function initDatabase() {
 
         CREATE INDEX IF NOT EXISTS idx_play_history_user_played ON play_history(user_id, played_at);
         CREATE INDEX IF NOT EXISTS idx_tracks_vendor ON tracks(vendor_id);
+
+        CREATE TABLE IF NOT EXISTS subsonic_servers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT,
+            url TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
     `;
 
     db.exec(schema);
@@ -78,6 +88,20 @@ export function initDatabase() {
     try { db.prepare('ALTER TABLE play_history ADD COLUMN listened_duration_ms INTEGER DEFAULT 0').run(); } catch (e) { }
     try { db.prepare('ALTER TABLE tracks ADD COLUMN raw_data TEXT').run(); } catch (e) { }
     try { db.prepare('ALTER TABLE users ADD COLUMN listenbrainz_token TEXT UNIQUE').run(); } catch (e) { }
+
+    try {
+        const usersWithSubsonic = db.prepare("SELECT id, subsonic_url, subsonic_auth FROM users WHERE subsonic_url IS NOT NULL").all() as any[];
+        if (usersWithSubsonic.length > 0) {
+            const insertServer = db.prepare("INSERT INTO subsonic_servers (user_id, url, auth) VALUES (?, ?, ?)");
+            const clearUser = db.prepare("UPDATE users SET subsonic_url = NULL, subsonic_auth = NULL WHERE id = ?");
+            db.transaction(() => {
+                for (const user of usersWithSubsonic) {
+                    insertServer.run(user.id, user.subsonic_url, user.subsonic_auth);
+                    clearUser.run(user.id);
+                }
+            })();
+        }
+    } catch (e) { console.error("Migration failed:", e); }
 
     console.log('Database initialized.');
 }
