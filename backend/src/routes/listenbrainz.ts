@@ -82,7 +82,34 @@ const submitListensHandler = (req: any, res: any) => {
                 duration = typeof meta.additional_info.duration_ms === 'string' ? parseInt(meta.additional_info.duration_ms) : meta.additional_info.duration_ms;
             }
 
-            console.log(`[ListenBrainz] Processing: ${meta.artist_name} - ${meta.track_name} (Duration: ${duration})`);
+            // Extract Year and Genre
+            let year = null;
+            if (meta.release_name) {
+                // Try to find year in release name? No, unreliable.
+            }
+            if (meta.additional_info) {
+                if (meta.additional_info.date) {
+                    const dateStr = String(meta.additional_info.date);
+                    const match = dateStr.match(/(\d{4})/);
+                    if (match) year = parseInt(match[1]);
+                } else if (meta.additional_info.release_year) {
+                    year = parseInt(meta.additional_info.release_year);
+                } else if (meta.additional_info.year) {
+                    year = parseInt(meta.additional_info.year);
+                }
+            }
+
+            let genre = null;
+            if (meta.additional_info && meta.additional_info.genre) {
+                // Navidrome might send array or string
+                if (Array.isArray(meta.additional_info.genre)) {
+                    genre = meta.additional_info.genre[0];
+                } else {
+                    genre = String(meta.additional_info.genre);
+                }
+            }
+
+            console.log(`[ListenBrainz] Processing: ${meta.artist_name} - ${meta.track_name} (Duration: ${duration}, Year: ${year}, Genre: ${genre})`);
 
             const listenedAt = item.listened_at ? new Date(item.listened_at * 1000) : new Date(); // LB uses seconds
 
@@ -95,17 +122,21 @@ const submitListensHandler = (req: any, res: any) => {
                 artist: meta.artist_name,
                 album: meta.release_name || null,
                 duration_ms: duration || null,
-                image_url: null, // LB doesn't send images usually
+                image_url: null,
+                year: year,
+                genre: genre,
                 raw_data: JSON.stringify(item)
             };
 
             const insertTrack = db.prepare(`
-                INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, raw_data)
-                VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @raw_data)
+                INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, raw_data)
+                VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @raw_data)
                 ON CONFLICT(vendor_id) DO UPDATE SET 
                     title = excluded.title,
                     raw_data = excluded.raw_data,
-                    duration_ms = COALESCE(excluded.duration_ms, tracks.duration_ms)
+                    duration_ms = COALESCE(excluded.duration_ms, tracks.duration_ms),
+                    year = COALESCE(excluded.year, tracks.year),
+                    genre = COALESCE(excluded.genre, tracks.genre)
                 RETURNING id
             `);
 
