@@ -53,6 +53,8 @@ const submitListensHandler = (req: any, res: any) => {
 
         for (const item of body.payload) {
             const meta = item.track_metadata;
+            console.log(`[ListenBrainz] Processing Track: ${meta.artist_name} - ${meta.track_name} (Duration: ${meta.duration_ms})`);
+
             const listenedAt = item.listened_at ? new Date(item.listened_at * 1000) : new Date(); // LB uses seconds
 
             // Construct Vendor ID
@@ -82,10 +84,12 @@ const submitListensHandler = (req: any, res: any) => {
             const trackRow = insertTrack.get(trackData) as { id: number };
             insertedTracks.push(trackRow.id);
 
-            db.prepare(`
+            const result = db.prepare(`
                 INSERT OR IGNORE INTO play_history (user_id, track_id, played_at, source, listened_duration_ms)
                 VALUES (?, ?, ?, ?, ?)
             `).run(user.id, trackRow.id, listenedAt.toISOString(), 'listenbrainz', meta.duration_ms || 0);
+
+            console.log(`[ListenBrainz] Insert result: ${result.changes} rows affected. User: ${user.id}, Track: ${trackRow.id}`);
         }
 
         res.status(200).json({ status: 'ok', listened_count: insertedTracks.length });
