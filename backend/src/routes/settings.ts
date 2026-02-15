@@ -75,7 +75,13 @@ router.delete('/subsonic/:id', (req, res) => {
 });
 
 // Knowledge Base
-const kbDir = path.resolve(__dirname, '../../../documentation/knowledge_base');
+// Knowledge Base
+// Try multiple paths for Dev vs Prod (Docker)
+const possiblePaths = [
+    path.resolve(__dirname, '../../../documentation/knowledge_base'), // Dev (backend/src/routes -> root/documentation)
+    path.resolve(__dirname, '../../documentation/knowledge_base')     // Prod (app/dist/routes -> app/documentation)
+];
+const kbDir = possiblePaths.find(p => fs.existsSync(p)) || '';
 
 router.get('/kb', (req, res) => {
     if (!fs.existsSync(kbDir)) return res.json([]);

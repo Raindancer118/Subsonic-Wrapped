@@ -46,9 +46,18 @@ export default function Settings() {
 
     const copyToken = () => {
         if (token) {
-            navigator.clipboard.writeText(token);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(token).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Could not copy automatically. Please copy manually.');
+                });
+            } else {
+                // Fallback or alert
+                alert('Clipboard not available (insecure context?). please copy manually.');
+            }
         }
     };
 
