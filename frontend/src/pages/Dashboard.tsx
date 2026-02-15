@@ -190,19 +190,18 @@ const Dashboard: React.FC = () => {
                                     const count = data ? data.count : 0;
                                     const max = Math.max(...extended.hourly.map((h: any) => h.count), 1);
                                     const height = max > 0 ? (count / max) * 100 : 0;
-                                    return (
-                                        <div key={hour} className="flex-1 flex flex-col items-center group relative">
-                                            <div
-                                                className="w-full bg-green-500/50 hover:bg-green-500 transition-all rounded-t-sm"
-                                                style={{ height: `${height}%` }}
-                                            ></div>
-                                            <span className="text-[10px] text-gray-500 mt-1">{hour}</span>
-                                            {count > 0 && (
-                                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-black text-xs p-1 rounded whitespace-nowrap z-50">
-                                                    {count} plays
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div key={hour} className="flex-1 h-full flex flex-col justify-end items-center group relative">
+                                        <div
+                                            className="w-full bg-green-500/50 hover:bg-green-500 transition-all rounded-t-sm"
+                                            style={{ height: `${height}%` }}
+                                        ></div>
+                                        <span className="text-[10px] text-gray-500 mt-1">{hour}</span>
+                                        {count > 0 && (
+                                            <div className="absolute bottom-full mb-2 hidden group-hover:block bg-black text-xs p-1 rounded whitespace-nowrap z-50">
+                                                {count} plays
+                                            </div>
+                                        )}
+                                    </div>
                                     );
                                 })}
                             </div>
