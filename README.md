@@ -1,33 +1,50 @@
-# Subsonic Wrapped / Stats App
+# Subsonic Wrapped
 
-A comprehensive "Spotify Wrapped" style application for tracking your listening habits across **Spotify** and **Subsonic** (Navidrome, Jellyfin, Gonic) servers.
+A powerful, privacy-first, and "Spotify Wrapped"-style application to visualize your listening habits across **Spotify** and **Subsonic-compatible** servers (Navidrome, Jellyfin, Gonic, etc.).
 
-![Dashboard Preview](https://via.placeholder.com/800x400?text=Dashboard+Preview)
+![Dashboard Preview](https://via.placeholder.com/1200x600?text=Subsonic+Wrapped+Dashboard)
 
-## Features
--   **Unified Statistics**: Combine listening history from Spotify and self-hosted servers.
--   **Live Dashboard**: See what's playing right now with a modern, dark-mode UI.
--   **Detailed Metrics**: Track listening time (Today/All-time), Top Artists, and Recent History.
--   **Privacy Focused**: Self-hosted, encrypted tokens, local database (SQLite).
--   **Dockerized**: Easy deployment with Docker Compose.
+## ✨ Features
 
-## quick Start
+-   **📊 Unified Statistics**: Seamlessly combine listening history from Spotify and self-hosted libraries.
+-   **🚀 Live Dashboard**: Real-time "Now Playing" insights with a stunning, modern dark-mode interface.
+-   **📈 Deep Metrics**: Insightful charts for listening time, top artists, tracks, and genre distributions.
+-   **🔒 Privacy First**: Completely self-hosted. Your data stays on your hardware. Tokens are encrypted at rest.
+-   **🐳 Containerized**: One-command deployment using Docker and Docker Compose.
+-   **📱 Responsive**: Works beautifully on desktop, tablet, and mobile browsers.
 
-1.  **Configure**: Set up `backend/.env` (see [Setup Guide](documentation/SETUP.md)).
-2.  **Launch**:
+## 🚀 Quick Start
+
+Ensure you have **Docker** and **Docker Compose** installed.
+
+1.  **Clone & Prepare**:
+    ```bash
+    git clone https://github.com/tom/subsonic-wrapped.git
+    cd subsonic-wrapped
+    cp config.example.yml config.yml
+    ```
+2.  **Configure**:
+    Edit `config.yml` with your Spotify API credentials and server details. (See [Setup Guide](documentation/SETUP.md) for details).
+3.  **Launch**:
     ```bash
     ./launch.sh
     ```
-3.  **Access**: Open [http://localhost:3000](http://localhost:3000).
+4.  **Enjoy**:
+    Your dashboard is now live at [http://localhost:3000](http://localhost:3000).
 
-## Documentation
--   [**Full Setup Guide**](documentation/SETUP.md): Detailed instructions for connecting Spotify and Subsonic.
--   [**Features**](documentation/features/):
-    -   [Authentication](documentation/features/authentication.md)
-    -   [Dashboard](documentation/features/dashboard.md)
-    -   [Data Ingestion](documentation/features/ingestion.md)
+## 📚 Documentation
 
-## Tech Stack
--   **Backend**: Node.js, Express, SQLite (Better-Quality), Passport.js
--   **Frontend**: React, Vite, Tailwind CSS, Recharts
--   **Deployment**: Docker, GHCR Actions
+For deep dives into configuration and features, check our documentation:
+
+-   [**Comprehensive Setup Guide**](documentation/SETUP.md)
+-   [**Feature Overview**](documentation/features/)
+-   [**Security Policy**](rules.md)
+
+## 🛠 Tech Stack
+
+-   **Backend**: Node.js (Express), SQLite (Better-SQLite3)
+-   **Frontend**: React (Vite, TypeScript, Tailwind CSS, Framer Motion)
+-   **Infrastructure**: Docker, Multi-Scrobbler integration
+
+---
+*Built with ❤️ for the self-hosted music community.*
