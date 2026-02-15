@@ -30,6 +30,33 @@ export async function pollSubsonicNowPlaying() {
 
         try {
             const authData: SubsonicAuth = JSON.parse(user.subsonic_auth);
+
+            // 1. Check Config: Use Scrobble Only?
+            const serverConfig = config.subsonic ? Object.values(config.subsonic).find(s => s.url === user.subsonic_url || user.subsonic_url.includes(s.url)) : null;
+            // Simplified check: If ANY defined server has useScrobbleOnly, or if we can match it. 
+            // Since we store URL in DB, we try to match with config. 
+            // Actually, simpler: check if the global config has a default or if we can match the domain.
+            // For now, let's just check if *any* subsonic config entry has it true, or if we should add it to the DB user record?
+            // The user asked for "In the config", so we check `config.subsonic`.
+            // Let's iterate config.subsonic and see if the user's URL matches one that has the flag.
+
+            let useScrobbleOnly = false;
+            if (config.subsonic) {
+                for (const key in config.subsonic) {
+                    if (user.subsonic_url.includes(config.subsonic[key].url)) {
+                        if (config.subsonic[key].useScrobbleOnly) {
+                            useScrobbleOnly = true;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (useScrobbleOnly) {
+                // Skip polling for this user, they will push data via Scrobble Endpoint
+                continue;
+            }
+
             const password = decrypt(authData.password || '');
 
             if (!password) continue;
@@ -50,7 +77,28 @@ export async function pollSubsonicNowPlaying() {
                 const entries = Array.isArray(nowPlaying) ? nowPlaying : [nowPlaying];
                 const entry = entries.find((e: any) => e.username === subUser);
 
+                // Bug Fix: Check if track is stale (minutesAgo > 0)
+                // If the track was started > 5 minutes ago and length is < 5 mins, it's finished? 
+                // Subsonic `minutesAgo` is "Minutes since the player started playing this song".
+                // If `minutesAgo` keeps increasing, it might just mean they are playing a long song.
+                // BUT if `minutesAgo` hasn't changed between polls? No, it would increase.
+                // If the song is paused, `minutesAgo` usually *continues to increase* because it's time since start.
+                // WE NEED TO CHECK PROGRESS.
+                // Does entry have `seconds`? (Time elapsed).
+                // If `entry.minutesAgo` is large, we should be careful.
+                // BETTER FIX: Check `entry.minutesAgo`. If it is significantly larger than the track duration, it's definitely stale.
+                // Also, if `minutesAgo` is unchanging? No, it's integer minutes.
+                // Let's assume if `minutesAgo` > `duration` + buffer, it's stale.
+
+                let isStale = false;
                 if (entry) {
+                    const durationMin = (entry.duration || 0) / 60;
+                    if (entry.minutesAgo > (durationMin + 5)) {
+                        isStale = true;
+                    }
+                }
+
+                if (entry && !isStale) {
                     // Extract Metadata
                     const trackData = {
                         vendor_id: `subsonic:track:${entry.id}`,

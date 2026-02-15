@@ -7,7 +7,7 @@ services:
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     volumes:
-      - ./data:/app/data
+      - ./data:/data
       - ./config.yml:/config.yml
     environment:
       - PORT=3000

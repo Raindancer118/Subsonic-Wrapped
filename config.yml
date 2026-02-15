@@ -18,6 +18,7 @@ subsonic:
     url: "https://music.example.com"
     username: "user"
     legacyAuth: false # Set to true if server requires MD5 of password
+    useScrobbleOnly: false # If true, disables polling and relies on external scrobble pushes
 
 logging:
   level: info

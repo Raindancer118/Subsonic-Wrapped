@@ -8,6 +8,7 @@ const Dashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const [current, setCurrent] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
+    const [recent, setRecent] = useState<any[]>([]);
     const [extended, setExtended] = useState<any>(null);
 
     const fetchData = async () => {

@@ -23,6 +23,7 @@ export interface AppConfig {
             url: string;
             username: string;
             legacyAuth: boolean;
+            useScrobbleOnly?: boolean;
         };
     };
     logging: {
