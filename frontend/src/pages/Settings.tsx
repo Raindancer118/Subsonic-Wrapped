@@ -222,7 +222,7 @@ export default function Settings() {
                                 </form>
                             )}
 
-                            {connections.subsonic?.map((server: any) => (
+                            {Array.isArray(connections.subsonic) && connections.subsonic.map((server: any) => (
                                 <div key={server.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded border border-gray-700">
                                     <div className="flex items-center gap-3">
                                         <Server size={18} className="text-orange-400" />
@@ -343,7 +343,7 @@ export default function Settings() {
 
                     {!selectedArticle ? (
                         <ul className="space-y-2">
-                            {articles?.map(article => (
+                            {Array.isArray(articles) && articles.map(article => (
                                 <li key={article.id}>
                                     <button
                                         onClick={() => loadArticle(article.id)}
