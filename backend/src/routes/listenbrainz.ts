@@ -59,11 +59,20 @@ const submitListensHandler = (req: any, res: any) => {
                     duration = typeof meta.additional_info.duration_ms === 'string' ? parseInt(meta.additional_info.duration_ms) : meta.additional_info.duration_ms;
                 }
 
+                let bitrate = null;
+                let codec = null;
+                if (meta.additional_info) {
+                    if (meta.additional_info.bitrate) bitrate = typeof meta.additional_info.bitrate === 'string' ? parseInt(meta.additional_info.bitrate) : meta.additional_info.bitrate;
+                    if (meta.additional_info.codec) codec = String(meta.additional_info.codec);
+                }
+
                 userNowPlaying.set(user.id, {
                     title: meta.track_name,
                     artist: meta.artist_name,
                     album: meta.release_name,
                     duration_ms: duration,
+                    bitrate: bitrate,
+                    codec: codec,
                     is_playing: true,
                     timestamp: Date.now()
                 });

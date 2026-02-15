@@ -68,6 +68,10 @@ const DetailModal: React.FC<DetailModalProps> = ({ type, data, onClose }) => {
                                     <p className="text-gray-400 text-xs uppercase font-bold mb-1">Released</p>
                                     <p className="text-xl font-bold text-gray-300">{data.year || 'Unknown'}</p>
                                 </div>
+                                <div className="bg-gray-800 p-4 rounded-xl">
+                                    <p className="text-gray-400 text-xs uppercase font-bold mb-1">Genre</p>
+                                    <p className="text-xl font-bold text-gray-300">{data.genre || 'Unknown'}</p>
+                                </div>
                             </>
                         )}
                     </div>

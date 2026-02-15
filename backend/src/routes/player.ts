@@ -57,12 +57,20 @@ router.get('/current', async (req, res) => {
             // Check staleness (if updated > 10m ago, ignore?)
             const diff = Date.now() - lbNowPlaying.timestamp;
             if (diff < 1000 * 60 * 10) { // 10 minutes
+
+                // Try to find rich metadata from DB if we have seen this track before
+                const dbTrack = db.prepare('SELECT image_url, year, genre, bitrate, codec FROM tracks WHERE title = ? AND artist = ?').get(lbNowPlaying.title, lbNowPlaying.artist) as any;
+
                 currentTrack = {
                     title: lbNowPlaying.title,
                     artist: lbNowPlaying.artist,
                     album: lbNowPlaying.album,
-                    image_url: null, // LB usually lacks images
+                    image_url: dbTrack?.image_url || null,
                     duration_ms: lbNowPlaying.duration_ms,
+                    bitrate: lbNowPlaying.bitrate || dbTrack?.bitrate,
+                    codec: lbNowPlaying.codec || dbTrack?.codec,
+                    year: dbTrack?.year,
+                    genre: dbTrack?.genre,
                     progress_ms: 0,
                     is_playing: true
                 };
