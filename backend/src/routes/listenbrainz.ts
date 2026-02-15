@@ -109,7 +109,19 @@ const submitListensHandler = (req: any, res: any) => {
                 }
             }
 
-            console.log(`[ListenBrainz] Processing: ${meta.artist_name} - ${meta.track_name} (Duration: ${duration}, Year: ${year}, Genre: ${genre})`);
+            // Extract Bitrate and Codec
+            let bitrate = null;
+            let codec = null;
+            if (meta.additional_info) {
+                if (meta.additional_info.bitrate) {
+                    bitrate = typeof meta.additional_info.bitrate === 'string' ? parseInt(meta.additional_info.bitrate) : meta.additional_info.bitrate;
+                }
+                if (meta.additional_info.codec) {
+                    codec = String(meta.additional_info.codec);
+                }
+            }
+
+            console.log(`[ListenBrainz] Processing: ${meta.artist_name} - ${meta.track_name} (Duration: ${duration}, Year: ${year}, Genre: ${genre}, Bitrate: ${bitrate}, Codec: ${codec})`);
 
             const listenedAt = item.listened_at ? new Date(item.listened_at * 1000) : new Date(); // LB uses seconds
 
@@ -125,18 +137,22 @@ const submitListensHandler = (req: any, res: any) => {
                 image_url: null,
                 year: year,
                 genre: genre,
+                bitrate: bitrate,
+                codec: codec,
                 raw_data: JSON.stringify(item)
             };
 
             const insertTrack = db.prepare(`
-                INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, raw_data)
-                VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @raw_data)
+                INSERT INTO tracks (vendor_id, title, artist, album, duration_ms, image_url, year, genre, bitrate, codec, raw_data)
+                VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @year, @genre, @bitrate, @codec, @raw_data)
                 ON CONFLICT(vendor_id) DO UPDATE SET 
                     title = excluded.title,
                     raw_data = excluded.raw_data,
                     duration_ms = COALESCE(excluded.duration_ms, tracks.duration_ms),
                     year = COALESCE(excluded.year, tracks.year),
-                    genre = COALESCE(excluded.genre, tracks.genre)
+                    genre = COALESCE(excluded.genre, tracks.genre),
+                    bitrate = COALESCE(excluded.bitrate, tracks.bitrate),
+                    codec = COALESCE(excluded.codec, tracks.codec)
                 RETURNING id
             `);
 
