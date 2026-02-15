@@ -52,8 +52,8 @@ const submitListensHandler = (req: any, res: any) => {
         const insertedTracks: number[] = [];
 
         for (const item of body.payload) {
+            console.log('[ListenBrainz] Raw Payload Item:', JSON.stringify(item));
             const meta = item.track_metadata;
-            console.log(`[ListenBrainz] Processing Track: ${meta.artist_name} - ${meta.track_name} (Duration: ${meta.duration_ms})`);
 
             const listenedAt = item.listened_at ? new Date(item.listened_at * 1000) : new Date(); // LB uses seconds
 
