@@ -193,15 +193,14 @@ const Wrapped: React.FC = () => {
                             <Clock size={64} className="mx-auto mb-6 opacity-80" />
                             <p className="text-xl mb-2">You listened most during the</p>
                             <h1 className="text-6xl font-black mb-4 text-yellow-400">{topTime?.time_of_day || 'Day'}</h1>
-                            <div className="space-y-4 mt-12 w-full max-w-sm mx-auto">
-                                {data.audio_day.map((d: any) => (
-                                    <div key={d.time_of_day} className="flex items-center gap-4">
-                                        <div className="w-24 text-right opacity-70">{d.time_of_day}</div>
-                                        <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
-                                            <div className="h-full bg-white" style={{ width: `${(d.count / (data.audio_day[0].count)) * 100}%` }}></div>
-                                        </div>
+                            <div className="space-y-4 mt-12 w-full max-w-sm mx-auto">                                {data.audio_day?.map((d: any) => (
+                                <div key={d.time_of_day} className="flex items-center gap-4">
+                                    <div className="w-24 text-right opacity-70">{d.time_of_day}</div>
+                                    <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+                                        <div className="h-full bg-white" style={{ width: `${(d.count / (data.audio_day[0].count)) * 100}%` }}></div>
                                     </div>
-                                ))}
+                                </div>
+                            )) || <p className="opacity-50">No data</p>}
                             </div>
                         </div>
                     </Slide>
@@ -227,9 +226,9 @@ const Wrapped: React.FC = () => {
                         )}
                         <div className="relative z-10 text-center">
                             <p className="text-xl mb-4 font-bold uppercase tracking-widest">Top Artist</p>
-                            <h1 className="text-6xl font-black mb-6">{data.top_artist?.artist}</h1>
+                            <h1 className="text-6xl font-black mb-6">{data.top_artist?.artist || 'Unknown'}</h1>
                             <div className="bg-black/50 backdrop-blur-md p-6 rounded-xl inline-block">
-                                <p className="text-4xl font-bold">{data.top_artist?.play_count} Plays</p>
+                                <p className="text-4xl font-bold">{data.top_artist?.play_count || 0} Plays</p>
                                 <p className="text-sm opacity-70 mt-2">You spent {((data.top_artist?.total_time_ms || 0) / 60000).toFixed(0)} minutes together</p>
                             </div>
                         </div>
@@ -241,7 +240,7 @@ const Wrapped: React.FC = () => {
                         <div className="w-full max-w-md">
                             <h2 className="text-4xl font-black mb-8 text-center">Top Songs</h2>
                             <div className="space-y-4">
-                                {data.top_songs.map((song, i) => (
+                                {(data.top_songs || []).map((song, i) => (
                                     <div key={i} className="flex items-center gap-4 bg-black/20 p-3 rounded-lg backdrop-blur-sm">
                                         <div className="text-2xl font-bold opacity-50 w-8">{i + 1}</div>
                                         {song.image_url && <img src={song.image_url} className="w-12 h-12 rounded" />}
@@ -265,9 +264,9 @@ const Wrapped: React.FC = () => {
                             </div>
                             <p className="text-xl mb-2 opacity-80">We've successfully analyzed your brain.</p>
                             <p className="text-xl mb-6 opacity-80">You are...</p>
-                            <h1 className="text-6xl font-black mb-8 text-white drop-shadow-lg">{data.personality.archetype}</h1>
+                            <h1 className="text-6xl font-black mb-8 text-white drop-shadow-lg">{data.personality?.archetype || 'Mystery'}</h1>
                             <div className="space-y-2">
-                                {data.personality.traits.map((trait: string, i: number) => (
+                                {(data.personality?.traits || []).map((trait: string, i: number) => (
                                     <p key={i} className="text-lg font-medium bg-black/20 py-1 px-4 rounded-full inline-block">{trait}</p>
                                 ))}
                             </div>
@@ -283,7 +282,7 @@ const Wrapped: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4 mb-6 text-left">
                                 <div>
                                     <p className="text-xs font-bold uppercase opacity-60">Top Artist</p>
-                                    <p className="font-bold truncate">{data.top_artist?.artist}</p>
+                                    <p className="font-bold truncate">{data.top_artist?.artist || '-'}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs font-bold uppercase opacity-60">Minutes</p>
@@ -291,17 +290,17 @@ const Wrapped: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-xs font-bold uppercase opacity-60">Top Genre</p>
-                                    <p className="font-bold truncate">{data.top_genres[0]?.genre}</p>
+                                    <p className="font-bold truncate">{data.top_genres?.[0]?.genre || '-'}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs font-bold uppercase opacity-60">Archetype</p>
-                                    <p className="font-bold truncate">{data.personality.archetype}</p>
+                                    <p className="font-bold truncate">{data.personality?.archetype || '-'}</p>
                                 </div>
                             </div>
 
                             <div className="bg-black/10 rounded-xl p-4 mb-6">
                                 <p className="text-xs font-bold uppercase opacity-60 mb-2 text-left">Top Songs</p>
-                                {data.top_songs.slice(0, 5).map((s, i) => (
+                                {(data.top_songs || []).slice(0, 5).map((s, i) => (
                                     <div key={i} className="flex justify-between text-sm mb-1">
                                         <span className="truncate flex-1 text-left mr-2">{i + 1}. {s.title}</span>
                                     </div>
