@@ -236,7 +236,7 @@ export default function Settings() {
                                     </button>
                                 </div>
                             ))}
-                            {connections.subsonic.length === 0 && !showAddServer && (
+                            {(connections.subsonic?.length || 0) === 0 && !showAddServer && (
                                 <p className="text-sm text-gray-500 italic">No servers connected.</p>
                             )}
                         </div>
