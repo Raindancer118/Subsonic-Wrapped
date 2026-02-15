@@ -24,6 +24,13 @@ const listenSchema = z.object({
     }))
 });
 
+// In-memory store for "Now Playing" status from ListenBrainz clients
+const userNowPlaying = new Map<number, any>();
+
+export const getListenBrainzNowPlaying = (userId: number) => {
+    return userNowPlaying.get(userId);
+};
+
 const submitListensHandler = (req: any, res: any) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Token ')) {
@@ -39,13 +46,27 @@ const submitListensHandler = (req: any, res: any) => {
 
     try {
         const body = listenSchema.parse(req.body);
-        console.log(`[ListenBrainz] Type: ${body.listen_type}, Items: ${body.payload.length}`);
 
+        // Handle "Playing Now"
         if (body.listen_type === 'playing_now') {
-            // "Playing Now" - Update user status? 
-            // For now, we optionally log it or just ignore it as we primarily care about history.
-            // If we want to show "Now Playing" from scrobblers, we'd need to store this in `userPlayerStats`.
-            // Let's implement basic "Now Playing" support later if requested. For history, it's irrelevant.
+            const item = body.payload[0];
+            if (item) {
+                const meta = item.track_metadata;
+                // Parse duration: try root, then additional_info, then 0
+                let duration = meta.duration_ms || 0;
+                if (!duration && meta.additional_info && meta.additional_info.duration_ms) {
+                    duration = typeof meta.additional_info.duration_ms === 'string' ? parseInt(meta.additional_info.duration_ms) : meta.additional_info.duration_ms;
+                }
+
+                userNowPlaying.set(user.id, {
+                    title: meta.track_name,
+                    artist: meta.artist_name,
+                    album: meta.release_name,
+                    duration_ms: duration,
+                    is_playing: true,
+                    timestamp: Date.now()
+                });
+            }
             return res.status(200).json({ status: 'ok' });
         }
 
@@ -55,11 +76,17 @@ const submitListensHandler = (req: any, res: any) => {
             console.log('[ListenBrainz] Raw Payload Item:', JSON.stringify(item));
             const meta = item.track_metadata;
 
+            // Safe Duration Parsing
+            let duration = meta.duration_ms || 0;
+            if (!duration && meta.additional_info && meta.additional_info.duration_ms) {
+                duration = typeof meta.additional_info.duration_ms === 'string' ? parseInt(meta.additional_info.duration_ms) : meta.additional_info.duration_ms;
+            }
+
+            console.log(`[ListenBrainz] Processing: ${meta.artist_name} - ${meta.track_name} (Duration: ${duration})`);
+
             const listenedAt = item.listened_at ? new Date(item.listened_at * 1000) : new Date(); // LB uses seconds
 
             // Construct Vendor ID
-            // Ideally we use MBID if available, but for Navidrome generic scrobbling, use artist+track hash.
-            // Let's stick to our custom schema for consistency with `scrobble.ts`
             const vendorId = `scrobble:${meta.artist_name}:${meta.track_name}`.toLowerCase().replace(/\s+/g, '-');
 
             const trackData = {
@@ -67,7 +94,7 @@ const submitListensHandler = (req: any, res: any) => {
                 title: meta.track_name,
                 artist: meta.artist_name,
                 album: meta.release_name || null,
-                duration_ms: meta.duration_ms || null,
+                duration_ms: duration || null,
                 image_url: null, // LB doesn't send images usually
                 raw_data: JSON.stringify(item)
             };
@@ -77,7 +104,8 @@ const submitListensHandler = (req: any, res: any) => {
                 VALUES (@vendor_id, @title, @artist, @album, @duration_ms, @image_url, @raw_data)
                 ON CONFLICT(vendor_id) DO UPDATE SET 
                     title = excluded.title,
-                    raw_data = excluded.raw_data
+                    raw_data = excluded.raw_data,
+                    duration_ms = COALESCE(excluded.duration_ms, tracks.duration_ms)
                 RETURNING id
             `);
 
@@ -87,7 +115,7 @@ const submitListensHandler = (req: any, res: any) => {
             const result = db.prepare(`
                 INSERT OR IGNORE INTO play_history (user_id, track_id, played_at, source, listened_duration_ms)
                 VALUES (?, ?, ?, ?, ?)
-            `).run(user.id, trackRow.id, listenedAt.toISOString(), 'listenbrainz', meta.duration_ms || 0);
+            `).run(user.id, trackRow.id, listenedAt.toISOString(), 'listenbrainz', duration || 0);
 
             console.log(`[ListenBrainz] Insert result: ${result.changes} rows affected. User: ${user.id}, Track: ${trackRow.id}`);
         }
