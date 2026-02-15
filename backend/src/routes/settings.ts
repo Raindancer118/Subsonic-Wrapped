@@ -81,7 +81,14 @@ router.delete('/subsonic/:id', (req, res) => {
  * List Knowledge Base articles
  */
 router.get('/kb', (req, res) => {
-    const kbPath = path.resolve(__dirname, '../../../documentation/knowledge_base');
+    // In dev: __dirname = backend/src/routes, documentation = ../../../documentation
+    // In prod (Docker): __dirname = /app/dist/routes, documentation = /app/documentation
+    let kbPath = path.resolve(__dirname, '../../../documentation/knowledge_base');
+
+    if (__dirname.includes('dist')) {
+        kbPath = path.resolve(__dirname, '../../documentation/knowledge_base');
+    }
+
     try {
         if (!fs.existsSync(kbPath)) return res.json([]);
 
@@ -107,12 +114,19 @@ router.get('/kb', (req, res) => {
  */
 router.get('/kb/:id', (req, res) => {
     const { id } = req.params;
-    const kbPath = path.resolve(__dirname, '../../../documentation/knowledge_base', id);
+    let kbPath = path.resolve(__dirname, '../../../documentation/knowledge_base', id);
+
+    if (__dirname.includes('dist')) {
+        kbPath = path.resolve(__dirname, '../../documentation/knowledge_base', id);
+    }
 
     try {
-        // Security check: ensure path is within kb directory
         const resolvedPath = path.resolve(kbPath);
-        const baseKbPath = path.resolve(__dirname, '../../../documentation/knowledge_base');
+        let baseKbPath = path.resolve(__dirname, '../../../documentation/knowledge_base');
+        if (__dirname.includes('dist')) {
+            baseKbPath = path.resolve(__dirname, '../../documentation/knowledge_base');
+        }
+
         if (!resolvedPath.startsWith(baseKbPath)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
