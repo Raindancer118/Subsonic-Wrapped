@@ -6,6 +6,8 @@ import { decrypt } from '../utils/encryption';
 import { createAuthParams } from '../utils/subsonic';
 import crypto from 'crypto';
 
+import { getListenBrainzNowPlaying } from './listenbrainz';
+
 const router = express.Router();
 
 // Current Playback Endpoint
@@ -47,7 +49,29 @@ router.get('/current', async (req, res) => {
         }
     }
 
-    // 2. Check Subsonic (if Spotify is not playing)
+    // 2. Check ListenBrainz / Navidrome Push
+    // This is instant and doesn't require polling Subsonic, so precise "Now Playing" works well here.
+    if (!currentTrack || !currentTrack.is_playing) {
+        const lbNowPlaying = getListenBrainzNowPlaying(userId);
+        if (lbNowPlaying) {
+            // Check staleness (if updated > 10m ago, ignore?)
+            const diff = Date.now() - lbNowPlaying.timestamp;
+            if (diff < 1000 * 60 * 10) { // 10 minutes
+                currentTrack = {
+                    title: lbNowPlaying.title,
+                    artist: lbNowPlaying.artist,
+                    album: lbNowPlaying.album,
+                    image_url: null, // LB usually lacks images
+                    duration_ms: lbNowPlaying.duration_ms,
+                    progress_ms: 0,
+                    is_playing: true
+                };
+                source = 'listenbrainz';
+            }
+        }
+    }
+
+    // 3. Check Subsonic Polling (as fallback)
     if ((!currentTrack || !currentTrack.is_playing) && user.subsonic_auth && user.subsonic_url) {
         try {
             const authData = JSON.parse(user.subsonic_auth);
