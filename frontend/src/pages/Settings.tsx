@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+// import { useAuth } from '../context/AuthContext'; // Unused
 import client from '../api/client';
 import { Copy, Check, Shield, Server, Plug, Plus, Trash2, ExternalLink, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
