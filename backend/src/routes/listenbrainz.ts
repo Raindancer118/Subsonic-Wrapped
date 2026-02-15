@@ -39,6 +39,7 @@ const submitListensHandler = (req: any, res: any) => {
 
     try {
         const body = listenSchema.parse(req.body);
+        console.log(`[ListenBrainz] Type: ${body.listen_type}, Items: ${body.payload.length}`);
 
         if (body.listen_type === 'playing_now') {
             // "Playing Now" - Update user status? 
