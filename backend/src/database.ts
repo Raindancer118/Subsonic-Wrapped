@@ -3,7 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import config from './config';
 
-const dbPath = path.resolve(__dirname, '../../', config.database.path);
+const dbPath = config.app.env === 'production'
+    ? '/app/data/app.db' // Docker volume mount point
+    : path.resolve(__dirname, '../../', config.database.path);
+
 const dbDir = path.dirname(dbPath);
 
 // Ensure data directory exists
