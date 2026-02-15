@@ -56,6 +56,10 @@ const Slide: React.FC<{ children: React.ReactNode; color: string }> = ({ childre
 
 const Wrapped: React.FC = () => {
     const navigate = useNavigate();
+    const [data, setData] = useState<WrappedStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
     const [aiData, setAiData] = useState<{ roast: string; vibe: string } | null>(null);
 
     useEffect(() => {
