@@ -14,6 +14,7 @@ import playerRoutes from './routes/player';
 import statsRoutes from './routes/stats';
 import listenbrainzRoutes from './routes/listenbrainz';
 import settingsRoutes from './routes/settings';
+import wrappedRoutes from './routes/wrapped';
 
 // Services
 import { pollSpotifyRecentlyPlayed } from './services/spotify';
@@ -74,6 +75,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/scrobble', scrobbleRoutes);
 app.use('/api/player', playerRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/wrapped', wrappedRoutes);
 app.use('/api/listenbrainz', listenbrainzRoutes);
 app.use('/api/settings', settingsRoutes);
 

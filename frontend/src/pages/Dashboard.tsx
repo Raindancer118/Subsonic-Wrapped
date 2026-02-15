@@ -99,6 +99,12 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex gap-3">
                     <Link
+                        to="/story"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded shadow-lg transition-all animate-pulse"
+                    >
+                        <Play size={18} fill="currentColor" /> Play Wrapped
+                    </Link>
+                    <Link
                         to="/settings"
                         className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
                     >
