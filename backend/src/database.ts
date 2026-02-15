@@ -79,15 +79,29 @@ export function initDatabase() {
     // Migrations because SQLite doesn't support IF NOT EXISTS for columns in CREATE TABLE
     // We just try to add them and ignore errors if they exist (simplest for this dev setup)
     // ideally we'd use a proper migration tool
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN year INTEGER').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN genre TEXT').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN bitrate INTEGER').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN codec TEXT').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN track_number INTEGER').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE play_history ADD COLUMN listened_duration_ms INTEGER DEFAULT 0').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE tracks ADD COLUMN raw_data TEXT').run(); } catch (e) { }
-    try { db.prepare('ALTER TABLE users ADD COLUMN listenbrainz_token TEXT UNIQUE').run(); } catch (e) { }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN year INTEGER').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (year):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN genre TEXT').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (genre):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN bitrate INTEGER').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (bitrate):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN codec TEXT').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (codec):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN track_number INTEGER').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (track_number):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (disc_number):', e.message); }
+    try { db.prepare('ALTER TABLE play_history ADD COLUMN listened_duration_ms INTEGER DEFAULT 0').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (listened_duration_ms):', e.message); }
+    try { db.prepare('ALTER TABLE tracks ADD COLUMN raw_data TEXT').run(); } catch (e: any) { if (!e.message.includes('duplicate column')) console.error('Migration error (raw_data):', e.message); }
+    try {
+        db.prepare('ALTER TABLE users ADD COLUMN listenbrainz_token TEXT').run();
+    } catch (e: any) {
+        if (!e.message.includes('duplicate column')) console.error('Migration error (listenbrainz_token column):', e.message);
+    }
+
+    try {
+        db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_lb_token ON users(listenbrainz_token)').run();
+    } catch (e: any) {
+        console.error('Migration error (listenbrainz_token index):', e.message);
+    }
+
+    try {
+        // Safe migration for table creation (already handled by CREATE TABLE IF NOT EXISTS above, but ensuring)
+    } catch (e) { }
 
     try {
         const usersWithSubsonic = db.prepare("SELECT id, subsonic_url, subsonic_auth FROM users WHERE subsonic_url IS NOT NULL").all() as any[];
