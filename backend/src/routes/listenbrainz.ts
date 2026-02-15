@@ -91,7 +91,7 @@ const submitListensHandler = (req: any, res: any) => {
                 if (meta.additional_info.date) {
                     const dateStr = String(meta.additional_info.date);
                     const match = dateStr.match(/(\d{4})/);
-                    if (match) year = parseInt(match[1]);
+                    if (match && match[1]) year = parseInt(match[1]);
                 } else if (meta.additional_info.release_year) {
                     year = parseInt(meta.additional_info.release_year);
                 } else if (meta.additional_info.year) {
