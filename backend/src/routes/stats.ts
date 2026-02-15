@@ -198,32 +198,121 @@ router.get('/top/albums', (req, res) => {
 });
 
 // Detail Endpoint: Artist Stats
-router.get('/artist/:id', (req, res) => {
-    // Note: ID is tricky because we store artists string-based in tracks mostly.
-    // For now we accept Artist NAME as encoded string? Or we need an Artist Table. 
-    // Wait, the user asked for "Clicking on an artist". In our current schema, artist is a string column in Tracks.
-    // We don't have an Artists table with IDs.
-    // We can use the Artist String from the query param, but URL encoding might be messy.
-    // Alternative: We return a list of artist strings in top lists.
-    // Let's accept URL-encoded artist name.
-
-    // Actually, let's defer detailed artist/track views until the Frontend requests them properly.
-    // For now, these basic endpoints are a huge leap forward.
-    // Implementing basic artist detail by Name:
-
+router.get('/artist/:name', (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
     const userId = (req.user as any).id;
-    const artistName = req.params.id; // Treat ID as Name for now, or use a hash?
+    const artistName = decodeURIComponent(req.params.name);
 
-    // To support "ID", we could pick a Track ID and show that Track's stats?
-    // Let's assume the frontend passes the Artist Name string (URL encoded) for now.
+    // Summary
+    const summary = db.prepare(`
+        SELECT COUNT(*) as play_count, SUM(ph.listened_duration_ms) as total_time_ms
+        FROM play_history ph
+        JOIN tracks t ON ph.track_id = t.id
+        WHERE ph.user_id = ? AND t.artist = ?
+    `).get(userId, artistName) as any;
 
-    // However, routes are define as /artist/:id. 
-    // Let's assume the user clicks a row in Top Artists which has a name.
+    // Top Tracks
+    const topTracks = db.prepare(`
+        SELECT t.id, t.title, t.album, t.image_url, COUNT(*) as play_count
+        FROM play_history ph
+        JOIN tracks t ON ph.track_id = t.id
+        WHERE ph.user_id = ? AND t.artist = ?
+        GROUP BY t.id
+        ORDER BY play_count DESC
+        LIMIT 10
+    `).all(userId, artistName);
 
-    // ... skipping complex detail implementation in this single file pass to avoid risk.
-    // We'll stick to the core "Stats.fm" grid features first.
-    return res.status(501).json({ error: 'Not implemented yet' });
+    // Albums
+    const albums = db.prepare(`
+        SELECT t.album, t.image_url, COUNT(*) as play_count
+        FROM play_history ph
+        JOIN tracks t ON ph.track_id = t.id
+        WHERE ph.user_id = ? AND t.artist = ? AND t.album IS NOT NULL
+        GROUP BY t.album
+        ORDER BY play_count DESC
+        LIMIT 10
+    `).all(userId, artistName);
+
+    res.json({
+        name: artistName,
+        ...summary,
+        top_tracks: topTracks,
+        albums: albums
+    });
+});
+
+// Detail Endpoint: Album Stats
+router.get('/album/:name', (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = (req.user as any).id;
+    const albumName = decodeURIComponent(req.params.name);
+    const artistName = req.query.artist ? decodeURIComponent(req.query.artist as string) : null;
+
+    let queryParams = [userId, albumName];
+    let artistClause = "";
+    if (artistName) {
+        artistClause = "AND t.artist = ?";
+        queryParams.push(artistName);
+    }
+
+    // Summary
+    const summary = db.prepare(`
+        SELECT t.artist, COUNT(*) as play_count, SUM(ph.listened_duration_ms) as total_time_ms, MAX(t.image_url) as image_url
+        FROM play_history ph
+        JOIN tracks t ON ph.track_id = t.id
+        WHERE ph.user_id = ? AND t.album = ? ${artistClause}
+    `).get(...queryParams) as any;
+
+    // Tracks in Album
+    const tracks = db.prepare(`
+        SELECT t.id, t.title, t.artist, t.track_number, COUNT(*) as play_count
+        FROM play_history ph
+        JOIN tracks t ON ph.track_id = t.id
+        WHERE ph.user_id = ? AND t.album = ? ${artistClause}
+        GROUP BY t.id
+        ORDER BY t.track_number ASC, play_count DESC
+    `).all(...queryParams);
+
+    res.json({
+        album: albumName,
+        artist: summary?.artist || artistName,
+        image_url: summary?.image_url,
+        play_count: summary?.play_count || 0,
+        total_time_ms: summary?.total_time_ms || 0,
+        tracks: tracks
+    });
+});
+
+// Detail Endpoint: Track Stats
+router.get('/track/:id', (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = (req.user as any).id;
+    const trackId = req.params.id;
+
+    // Info & Consolidated Stats
+    const info = db.prepare(`
+        SELECT t.*, COUNT(ph.id) as play_count, SUM(ph.listened_duration_ms) as total_time_ms
+        FROM tracks t
+        LEFT JOIN play_history ph ON t.id = ph.track_id AND ph.user_id = ?
+        WHERE t.id = ?
+        GROUP BY t.id
+    `).get(userId, trackId);
+
+    if (!info) return res.status(404).json({ error: 'Track not found' });
+
+    // Recent History for this track
+    const history = db.prepare(`
+        SELECT ph.played_at, ph.listened_duration_ms, ph.source
+        FROM play_history ph
+        WHERE ph.user_id = ? AND ph.track_id = ?
+        ORDER BY ph.played_at DESC
+        LIMIT 10
+    `).all(userId, trackId);
+
+    res.json({
+        ...info,
+        history: history
+    });
 });
 
 export default router;
