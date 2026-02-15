@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 // import { useAuth } from '../context/AuthContext'; // Unused
 import client from '../api/client';
-import { Copy, Check, Shield, Server, Plug, Plus, Trash2, ExternalLink, BookOpen } from 'lucide-react';
+import { Copy, Check, Shield, Server, Plug, Plus, Trash2, ExternalLink, BookOpen, Cpu, Sparkles, Loader } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -22,10 +22,55 @@ export default function Settings() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [aiConfig, setAiConfig] = useState({ provider: 'gemini', key: '' });
+    const [testing, setTesting] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+
     useEffect(() => {
         fetchSettings();
         fetchKB();
+        loadAiSettings();
     }, []);
+
+    const loadAiSettings = async () => {
+        try {
+            const res = await client.get('/api/settings/ai');
+            if (res.data.configured) {
+                setAiConfig(prev => ({ ...prev, provider: res.data.provider }));
+            }
+        } catch (error) {
+            console.error('Failed to load AI settings');
+        }
+    };
+
+    const saveAiSettings = async () => {
+        setLoading(true);
+        try {
+            await client.post('/api/settings/ai', aiConfig);
+            setMessage({ type: 'success', text: 'AI Settings saved successfully!' });
+        } catch (err: any) {
+            setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to save AI settings.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const testAiConnection = async () => {
+        setTesting(true);
+        try {
+            const res = await client.post('/api/settings/ai/test', aiConfig);
+            if (res.data.success) {
+                setMessage({ type: 'success', text: 'AI Connection Successful!' });
+            } else {
+                setMessage({ type: 'error', text: res.data.error || 'AI Connection Failed.' });
+            }
+        } catch (err: any) {
+            setMessage({ type: 'error', text: err.response?.data?.error || 'AI Connection Failed. Check Key.' });
+        } finally {
+            setTesting(false);
+        }
+    };
 
     const fetchSettings = () => {
         client.get('/auth/me').then(res => {
@@ -194,6 +239,62 @@ export default function Settings() {
                             {connections.subsonic.length === 0 && !showAddServer && (
                                 <p className="text-sm text-gray-500 italic">No servers connected.</p>
                             )}
+                        </div>
+                    </div>
+
+                    {/* AI Configuration */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                            <Cpu className="text-purple-400" size={24} />
+                            AI Configuration
+                        </h2>
+
+                        {message && (
+                            <div className={`p-3 rounded mb-4 text-sm ${message.type === 'success' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
+                                {message.text}
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Provider</label>
+                                <select
+                                    value={aiConfig.provider}
+                                    onChange={(e) => setAiConfig({ ...aiConfig, provider: e.target.value })}
+                                    className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                >
+                                    <option value="gemini">Google Gemini (Recommended)</option>
+                                    <option value="groq">Groq</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">API Key</label>
+                                <input
+                                    type="password"
+                                    value={aiConfig.key}
+                                    onChange={(e) => setAiConfig({ ...aiConfig, key: e.target.value })}
+                                    placeholder="Enter your API Key"
+                                    className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={saveAiSettings}
+                                    disabled={loading}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors disabled:opacity-50"
+                                >
+                                    {loading ? 'Saving...' : 'Save AI Settings'}
+                                </button>
+                                <button
+                                    onClick={testAiConnection}
+                                    disabled={testing || !aiConfig.key}
+                                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {testing ? <Loader className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    Test
+                                </button>
+                            </div>
                         </div>
                     </div>
 

@@ -177,7 +177,7 @@ const submitListensHandler = (req: any, res: any) => {
             console.log(`[ListenBrainz] Insert result: ${result.changes} rows affected. User: ${user.id}, Track: ${trackRow.id}`);
 
             // Trigger background enrichment (fire and forget)
-            enrichTrack(trackRow.id, meta.artist_name, meta.track_name).catch(err => console.error(err));
+            enrichTrack(user.id, trackRow.id, meta.artist_name, meta.track_name).catch(err => console.error(err));
         }
 
         res.status(200).json({ status: 'ok', listened_count: insertedTracks.length });

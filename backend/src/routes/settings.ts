@@ -1,107 +1,99 @@
 import express from 'express';
 import db from '../database';
-import { z } from 'zod';
-import { verifySubsonic } from '../utils/subsonic';
-import { encrypt } from '../utils/encryption';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+import { aiService } from '../services/ai';
 
 const router = express.Router();
 
-// GET /connections
-router.get('/connections', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const user = req.user as any;
+/**
+ * POST /api/settings/ai
+ * Save AI Configuration (Encrypted)
+ */
+router.post('/ai', (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = (req.user as any).id;
+    const { provider, key } = req.body;
 
-    const spotifyConnected = !!user.spotify_access_token;
+    if (!provider || !key) {
+        return res.status(400).json({ error: 'Provider and Key are required' });
+    }
 
-    // Get Subsonic Servers
-    const servers = db.prepare('SELECT id, name, url FROM subsonic_servers WHERE user_id = ?').all(user.id);
-
-    res.json({
-        spotify: spotifyConnected,
-        subsonic: servers
-    });
-});
-
-// POST /subsonic (Add Server)
-const addServerSchema = z.object({
-    url: z.string().url(),
-    username: z.string(),
-    password: z.string(),
-    name: z.string().optional()
-});
-
-router.post('/subsonic', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const user = req.user as any;
+    if (!['gemini', 'groq'].includes(provider)) {
+        return res.status(400).json({ error: 'Invalid provider' });
+    }
 
     try {
-        const { url, username, password, name } = addServerSchema.parse(req.body);
+        const encryptedKey = aiService.encrypt(key);
 
-        // Verify
-        const salt = crypto.randomBytes(6).toString('hex');
-        const token = crypto.createHash('md5').update(password + salt).digest('hex');
+        const upsert = db.prepare(`
+            INSERT INTO settings (key, value, user_id, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key, user_id) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+        `);
 
-        const isValid = await verifySubsonic(url, username, token, salt);
-        if (!isValid) {
-            return res.status(400).json({ error: 'Invalid Subsonic credentials or URL unreachable' });
-        }
+        db.transaction(() => {
+            upsert.run('ai_provider', provider, userId);
+            upsert.run('ai_key', encryptedKey, userId);
+        })();
 
-        // Encrypt & Save
-        const authData = JSON.stringify({
-            subsonicUser: username,
-            password: encrypt(password)
-        });
-
-        db.prepare('INSERT INTO subsonic_servers (user_id, name, url, auth) VALUES (?, ?, ?, ?)').run(user.id, name || 'Subsonic Server', url, authData);
-
-        res.json({ success: true });
-    } catch (e: any) {
-        if (e instanceof z.ZodError) return res.status(400).json({ error: e.issues });
-        console.error(e);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.json({ success: true, message: 'AI settings saved securely' });
+    } catch (error: any) {
+        console.error('Error saving AI settings:', error);
+        res.status(500).json({ error: 'Failed to save settings' });
     }
 });
 
-// DELETE /subsonic/:id
-router.delete('/subsonic/:id', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const user = req.user as any;
+/**
+ * POST /api/settings/ai/test
+ * Test AI Connection
+ */
+router.post('/ai/test', async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const { provider, key } = req.body;
 
-    db.prepare('DELETE FROM subsonic_servers WHERE id = ? AND user_id = ?').run(req.params.id, user.id);
-    res.json({ success: true });
+    if (!provider || !key) {
+        return res.status(400).json({ error: 'Provider and Key are required for test' });
+    }
+
+    try {
+        // We verify the raw key provided by the user (before saving)
+        const success = await aiService.testConnection(provider, key);
+        if (success) {
+            res.json({ success: true, message: 'Connection successful!' });
+        } else {
+            res.status(400).json({ success: false, error: 'Connection failed. Please check your key.' });
+        }
+    } catch (error: any) {
+        console.error('Error testing AI connection:', error);
+        res.status(500).json({ error: 'Internal server error during test' });
+    }
 });
 
-// Knowledge Base
-// Knowledge Base
-// Try multiple paths for Dev vs Prod (Docker)
-const possiblePaths = [
-    path.resolve(__dirname, '../../../documentation/knowledge_base'), // Dev (backend/src/routes -> root/documentation)
-    path.resolve(__dirname, '../../documentation/knowledge_base')     // Prod (app/dist/routes -> app/documentation)
-];
-const kbDir = possiblePaths.find(p => fs.existsSync(p)) || '';
+/**
+ * GET /api/settings/ai
+ * Get current configuration (masked)
+ */
+router.get('/ai', (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = (req.user as any).id;
 
-router.get('/kb', (req, res) => {
-    if (!fs.existsSync(kbDir)) return res.json([]);
-    const files = fs.readdirSync(kbDir).filter(f => f.endsWith('.md'));
-    const articles = files.map(f => ({
-        id: f,
-        title: f.replace(/_/g, ' ').replace('.md', '')
-    }));
-    res.json(articles);
-});
+    try {
+        const providerRow = db.prepare('SELECT value FROM settings WHERE key = ? AND user_id = ?').get('ai_provider', userId) as { value: string };
+        const keyRow = db.prepare('SELECT value FROM settings WHERE key = ? AND user_id = ?').get('ai_key', userId) as { value: string };
 
-router.get('/kb/:filename', (req, res) => {
-    const safeName = path.basename(req.params.filename);
-    const filePath = path.join(kbDir, safeName);
-
-    if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, 'utf8');
-        res.send(content);
-    } else {
-        res.status(404).send('Article not found');
+        if (providerRow && keyRow) {
+            res.json({
+                configured: true,
+                provider: providerRow.value,
+                // Do NOT return the key, even encrypted. Just status.
+            });
+        } else {
+            res.json({ configured: false });
+        }
+    } catch (error) {
+        console.error('Error checking AI settings:', error);
+        res.status(500).json({ error: 'Failed to retrieve settings' });
     }
 });
 

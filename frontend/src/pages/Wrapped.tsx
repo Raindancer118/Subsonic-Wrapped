@@ -56,16 +56,19 @@ const Slide: React.FC<{ children: React.ReactNode; color: string }> = ({ childre
 
 const Wrapped: React.FC = () => {
     const navigate = useNavigate();
-    const [data, setData] = useState<WrappedStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
+    const [aiData, setAiData] = useState<{ roast: string; vibe: string } | null>(null);
 
     useEffect(() => {
         const fetchWrapped = async () => {
             try {
                 const res = await axios.get('/api/wrapped');
                 setData(res.data);
+
+                // Fetch AI Data independently - don't block main load
+                axios.post('/api/wrapped/ai-analysis', { year: res.data.year })
+                    .then(aiRes => setAiData(aiRes.data))
+                    .catch(err => console.error("AI Analysis failed", err));
+
             } catch (err) {
                 console.error("Failed to load wrapped", err);
             } finally {
@@ -80,8 +83,10 @@ const Wrapped: React.FC = () => {
         'minutes',
         'audio_day',
         'listening_age',
+        'vibe',
         'top_artist', // Intentionally singular focus
         'top_songs',
+        'roast',
         'personality',
         'summary'
     ];
@@ -89,11 +94,14 @@ const Wrapped: React.FC = () => {
     useEffect(() => {
         if (!data || isPaused) return;
 
+        // Longer duration for text-heavy AI slides
+        const duration = (slides[currentSlide] === 'roast' || slides[currentSlide] === 'vibe' || slides[currentSlide] === 'personality') ? 8000 : 6000;
+
         const timer = setTimeout(() => {
             if (currentSlide < slides.length - 1) {
                 setCurrentSlide(prev => prev + 1);
             }
-        }, 6000); // 6 seconds per slide
+        }, duration);
 
         return () => clearTimeout(timer);
     }, [currentSlide, data, isPaused]);
@@ -116,6 +124,45 @@ const Wrapped: React.FC = () => {
                     <Slide color="bg-gradient-to-br from-pink-600 to-purple-700">
                         <h1 className="text-6xl font-black mb-4 text-center">Your {data.year}</h1>
                         <p className="text-2xl opacity-80">Wrapped</p>
+                    </Slide>
+                );
+            case 'vibe':
+                return (
+                    <Slide color="bg-gradient-to-t from-indigo-900 via-purple-900 to-slate-900">
+                        <div className="text-center max-w-2xl">
+                            <h2 className="text-3xl font-bold mb-12 opacity-80 tracking-widest uppercase">The Vibe</h2>
+                            {aiData ? (
+                                <div className="text-3xl md:text-5xl font-serif leading-tight italic">
+                                    "{aiData.vibe}"
+                                </div>
+                            ) : (
+                                <div className="animate-pulse flex flex-col items-center">
+                                    <div className="h-4 bg-white/20 rounded w-3/4 mb-4"></div>
+                                    <div className="h-4 bg-white/20 rounded w-1/2"></div>
+                                    <p className="mt-8 text-sm opacity-50">Consulting the oracles...</p>
+                                </div>
+                            )}
+                        </div>
+                    </Slide>
+                );
+            case 'roast':
+                return (
+                    <Slide color="bg-gradient-to-br from-red-600 to-orange-600">
+                        <div className="text-center max-w-2xl relative">
+                            <h2 className="text-6xl font-black mb-12 transform -rotate-2">ROASTED</h2>
+                            {aiData ? (
+                                <div className="bg-white text-black p-8 rounded-2xl shadow-xl transform rotate-1">
+                                    <p className="text-xl md:text-2xl font-bold font-mono">
+                                        {aiData.roast}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="animate-pulse flex flex-col items-center">
+                                    <div className="h-32 bg-white/20 rounded w-full"></div>
+                                    <p className="mt-8 text-sm opacity-50">Preparing the burn...</p>
+                                </div>
+                            )}
+                        </div>
                     </Slide>
                 );
             case 'minutes':

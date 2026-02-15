@@ -84,7 +84,9 @@ const getArtistGenre = async (artistId: string) => {
     return null;
 };
 
-export const enrichTrack = async (trackId: number, artist: string, title: string) => {
+import { aiService } from './ai';
+
+export const enrichTrack = async (userId: number, trackId: number, artist: string, title: string) => {
     try {
         const track = db.prepare('SELECT image_url, year, genre FROM tracks WHERE id = ?').get(trackId) as any;
         // If we have everything, skip
@@ -94,29 +96,52 @@ export const enrichTrack = async (trackId: number, artist: string, title: string
         console.log(`[Enricher] Searching Spotify for: ${artist} - ${title}`);
         const spotifyTrack = await searchSpotifyTrack(artist, title);
 
-        if (spotifyTrack) {
-            const imageUrl = track.image_url || spotifyTrack.album.images[0]?.url || null;
+        let imageUrl = track.image_url;
+        let year = track.year;
+        let genre = track.genre;
 
-            let year = track.year;
+        if (spotifyTrack) {
+            imageUrl = track.image_url || spotifyTrack.album.images[0]?.url || null;
+
             if (!year && spotifyTrack.album.release_date) {
                 year = parseInt(spotifyTrack.album.release_date.split('-')[0]);
             }
 
-            let genre = track.genre;
             if (!genre && spotifyTrack.artists.length > 0) {
                 genre = await getArtistGenre(spotifyTrack.artists[0].id);
             }
+        }
 
-            if (imageUrl !== track.image_url || year !== track.year || genre !== track.genre) {
-                db.prepare(`
-                    UPDATE tracks 
-                    SET image_url = COALESCE(image_url, ?),
-                        year = COALESCE(year, ?),
-                        genre = COALESCE(genre, ?)
-                    WHERE id = ?
-                `).run(imageUrl, year, genre, trackId);
-                console.log(`[Enricher] Updated track ${trackId} | Year: ${year}, Genre: ${genre}, Image: ${!!imageUrl}`);
+        // ---------------------------------------------------------
+        // AI Fallback for Genre
+        // ---------------------------------------------------------
+        if (!genre) {
+            try {
+                const aiConfig = aiService.getConfig(userId);
+                if (aiConfig) {
+                    console.log(`[Enricher] Asking AI for genre: ${artist} - ${title}`);
+                    const prompt = `What is the primary music genre of the song "${title}" by "${artist}"? Return ONLY the genre name (e.g. "Nu Metal", "Pop", "Indie Rock"), nothing else. Do not verify, do not explain. If absolutely unknown, return "Unknown".`;
+                    const aiGenre = await aiService.generateText(userId, prompt);
+                    const cleaned = aiGenre.trim().replace(/['"]/g, '').replace(/\.$/, ''); // Remove quotes/periods
+                    if (cleaned && cleaned.toLowerCase() !== 'unknown') {
+                        genre = cleaned;
+                        console.log(`[Enricher] AI Suggestion: ${genre}`);
+                    }
+                }
+            } catch (e: any) {
+                console.warn(`[Enricher] AI failed: ${e.message}`);
             }
+        }
+
+        if (imageUrl !== track.image_url || year !== track.year || genre !== track.genre) {
+            db.prepare(`
+                UPDATE tracks 
+                SET image_url = COALESCE(image_url, ?),
+                    year = COALESCE(year, ?),
+                    genre = COALESCE(genre, ?)
+                WHERE id = ?
+            `).run(imageUrl, year, genre, trackId);
+            console.log(`[Enricher] Updated track ${trackId} | Year: ${year}, Genre: ${genre}, Image: ${!!imageUrl}`);
         }
     } catch (e) {
         console.error('[Enricher] Error:', e);

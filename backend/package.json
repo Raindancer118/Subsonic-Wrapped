@@ -14,18 +14,20 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
+    "better-sqlite3-session-store": "^0.1.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
     "js-yaml": "^4.1.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "passport-spotify": "^2.0.0",
-    "better-sqlite3-session-store": "^0.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

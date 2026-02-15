@@ -77,7 +77,19 @@ export function initDatabase() {
         );
     `;
 
+    const settingsSchema = `
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (key, user_id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+    `;
+
     db.exec(schema);
+    db.exec(settingsSchema);
 
     // Migrations because SQLite doesn't support IF NOT EXISTS for columns in CREATE TABLE
     // We just try to add them and ignore errors if they exist (simplest for this dev setup)
