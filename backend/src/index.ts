@@ -13,6 +13,7 @@ import scrobbleRoutes from './routes/scrobble';
 import playerRoutes from './routes/player';
 import statsRoutes from './routes/stats';
 import listenbrainzRoutes from './routes/listenbrainz';
+import settingsRoutes from './routes/settings';
 
 // Services
 import { pollSpotifyRecentlyPlayed } from './services/spotify';

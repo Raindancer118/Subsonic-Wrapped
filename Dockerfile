@@ -28,6 +28,9 @@ COPY --from=backend-builder /app/backend/dist ./dist
 # Copy built frontend to public folder (served by backend)
 COPY --from=frontend-builder /app/frontend/dist ./public
 
+# Copy documentation folder (served by backend)
+COPY documentation/ ./documentation
+
 # Copy other necessary files
 COPY backend/.env.example ./.env
 COPY config.yml /config.yml

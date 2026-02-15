@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function Settings() {
-    const { user } = useAuth();
+    // const { user } = useAuth(); // Unused
     const [token, setToken] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
