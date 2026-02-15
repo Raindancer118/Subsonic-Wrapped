@@ -1,7 +1,7 @@
 # Global Configuration
 
 app:
-  port: 3000
+  port: 3075
   secret: "change_me_in_production_please" # Used for session signing and encryption
   env: "development"
 
