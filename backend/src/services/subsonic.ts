@@ -44,8 +44,9 @@ export async function pollSubsonicNowPlaying() {
             const subConfig = config.subsonic;
             if (subConfig) {
                 for (const key in subConfig) {
-                    if (user.subsonic_url.includes(subConfig[key].url)) {
-                        if (subConfig[key].useScrobbleOnly) {
+                    const serverConfig = subConfig[key];
+                    if (serverConfig && user.subsonic_url.includes(serverConfig.url)) {
+                        if (serverConfig.useScrobbleOnly) {
                             useScrobbleOnly = true;
                         }
                         break;
