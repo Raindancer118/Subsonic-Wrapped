@@ -62,7 +62,7 @@ passport.serializeUser((user: any, done) => {
 
 passport.deserializeUser((id, done) => {
     try {
-        const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(id) as User | undefined;
+        const user = db.prepare('SELECT id, username, listenbrainz_token FROM users WHERE id = ?').get(id) as User | undefined;
         done(null, user);
     } catch (err) {
         done(err);
