@@ -203,28 +203,34 @@ const Dashboard: React.FC = () => {
                     {/* Hourly Activity */}
                     <div className="bg-gray-800 rounded-xl p-6 col-span-2">
                         <h3 className="text-lg font-semibold mb-4">Hourly Activity</h3>
-                        <div className="h-64 flex items-end gap-1">
-                            {Array.from({ length: 24 }).map((_, hour) => {
-                                const data = extended.hourly.find((h: any) => parseInt(h.hour) === hour);
-                                const count = data ? data.count : 0;
-                                const max = Math.max(...extended.hourly.map((h: any) => h.count), 1);
-                                const height = max > 0 ? (count / max) * 100 : 0;
-                                return (
-                                    <div key={hour} className="flex-1 flex flex-col items-center group relative">
-                                        <div
-                                            className="w-full bg-green-500/50 hover:bg-green-500 transition-all rounded-t-sm"
-                                            style={{ height: `${height}%` }}
-                                        ></div>
-                                        <span className="text-[10px] text-gray-500 mt-1">{hour}</span>
-                                        {count > 0 && (
-                                            <div className="absolute bottom-full mb-2 hidden group-hover:block bg-black text-xs p-1 rounded whitespace-nowrap z-50">
-                                                {count} plays
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        {extended.hourly.length > 0 ? (
+                            <div className="h-64 flex items-end gap-1">
+                                {Array.from({ length: 24 }).map((_, hour) => {
+                                    const data = extended.hourly.find((h: any) => parseInt(h.hour) === hour);
+                                    const count = data ? data.count : 0;
+                                    const max = Math.max(...extended.hourly.map((h: any) => h.count), 1);
+                                    const height = max > 0 ? (count / max) * 100 : 0;
+                                    return (
+                                        <div key={hour} className="flex-1 flex flex-col items-center group relative">
+                                            <div
+                                                className="w-full bg-green-500/50 hover:bg-green-500 transition-all rounded-t-sm"
+                                                style={{ height: `${height}%` }}
+                                            ></div>
+                                            <span className="text-[10px] text-gray-500 mt-1">{hour}</span>
+                                            {count > 0 && (
+                                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-black text-xs p-1 rounded whitespace-nowrap z-50">
+                                                    {count} plays
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="h-64 flex items-center justify-center text-gray-500">
+                                No activity data for this period.
+                            </div>
+                        )}
                     </div>
 
                     {/* Weekly Activity */}
