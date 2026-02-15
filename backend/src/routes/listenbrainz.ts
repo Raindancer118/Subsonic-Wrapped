@@ -24,7 +24,7 @@ const listenSchema = z.object({
     }))
 });
 
-router.post('/1/submit-listens', (req, res) => {
+const submitListensHandler = (req: any, res: any) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Token ')) {
         return res.status(401).json({ error: 'Unauthorized', message: 'Missing or invalid Authorization header. Expected "Token <your_token>"' });
@@ -97,12 +97,15 @@ router.post('/1/submit-listens', (req, res) => {
             res.status(500).json({ error: 'Internal Server Error' });
         }
     }
-});
+};
+
+router.post('/1/submit-listens', submitListensHandler);
+router.post('/submit-listens', submitListensHandler); // Alias for Navidrome compat
 
 
 
 // Validate Token (Used by clients like Navidrome to check connection)
-router.get('/1/validate-token', (req, res) => {
+const validateTokenHandler = (req: any, res: any) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Token ')) {
         return res.status(401).json({ error: 'Unauthorized', message: 'Missing or invalid Authorization header.' });
@@ -120,6 +123,9 @@ router.get('/1/validate-token', (req, res) => {
         user_name: user.username,
         message: 'Token valid'
     });
-});
+};
+
+router.get('/1/validate-token', validateTokenHandler);
+router.get('/validate-token', validateTokenHandler); // Alias for Navidrome compat
 
 export default router;
