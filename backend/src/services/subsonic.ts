@@ -41,10 +41,11 @@ export async function pollSubsonicNowPlaying() {
             // Let's iterate config.subsonic and see if the user's URL matches one that has the flag.
 
             let useScrobbleOnly = false;
-            if (config.subsonic) {
-                for (const key in config.subsonic) {
-                    if (user.subsonic_url.includes(config.subsonic![key].url)) {
-                        if (config.subsonic![key].useScrobbleOnly) {
+            const subConfig = config.subsonic;
+            if (subConfig) {
+                for (const key in subConfig) {
+                    if (user.subsonic_url.includes(subConfig[key].url)) {
+                        if (subConfig[key].useScrobbleOnly) {
                             useScrobbleOnly = true;
                         }
                         break;
