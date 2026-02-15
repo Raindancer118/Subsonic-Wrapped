@@ -116,7 +116,7 @@ export class AIService {
                         { role: "system", content: systemContext || "You are a helpful assistant." },
                         { role: "user", content: prompt }
                     ],
-                    model: "mixtral-8x7b-32768",
+                    model: "llama-3.1-8b-instant",
                 });
                 return completion.choices[0]?.message?.content || "";
             } else {
@@ -142,7 +142,7 @@ export class AIService {
                 const groq = new Groq({ apiKey: key });
                 await groq.chat.completions.create({
                     messages: [{ role: "user", content: "Hello" }],
-                    model: "llama3-8b-8192", // Use small model for test
+                    model: "llama-3.1-8b-instant",
                 });
                 return true;
             }
