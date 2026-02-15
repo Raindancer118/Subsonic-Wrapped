@@ -138,7 +138,7 @@ router.get('/', (req, res) => {
           AND ph.listened_duration_ms >= 30000
         GROUP BY time_of_day
         ORDER BY count DESC
-    `).all(userId, startStr, endStr);
+    `).all(userId, startStr, endStr) as { time_of_day: string, count: number }[];
 
     // ---------------------------------------------------------
     // 6. Listening Age (Avg Release Year)

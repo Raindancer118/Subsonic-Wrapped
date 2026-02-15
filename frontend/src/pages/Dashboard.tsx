@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
-import { LogOut, Music, Clock, BarChart2, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, Music, Clock, BarChart2, Settings as SettingsIcon, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TimeRangeSelector from '../components/TimeRangeSelector';
 import TopTracksList from '../components/TopTracksList';
