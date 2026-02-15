@@ -14,8 +14,19 @@ const registerSchema = z.object({
     password: z.string().min(8)
 });
 
+// Helper to ensure token exists
+function ensureListenBrainzToken(user: any) {
+    if (!user.listenbrainz_token) {
+        const token = crypto.randomBytes(16).toString('hex');
+        db.prepare('UPDATE users SET listenbrainz_token = ? WHERE id = ?').run(token, user.id);
+        user.listenbrainz_token = token;
+    }
+    return user;
+}
+
 router.post('/login', passport.authenticate('local'), (req, res) => {
-    res.json({ user: req.user });
+    const user = ensureListenBrainzToken(req.user);
+    res.json({ user });
 });
 
 router.post('/register', async (req, res) => {
@@ -29,9 +40,10 @@ router.post('/register', async (req, res) => {
         }
 
         const hash = await bcrypt.hash(password, 10);
-        const result = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, hash);
+        const token = crypto.randomBytes(16).toString('hex');
+        const result = db.prepare('INSERT INTO users (username, password_hash, listenbrainz_token) VALUES (?, ?, ?)').run(username, hash, token);
 
-        const user = { id: result.lastInsertRowid, username };
+        const user = { id: result.lastInsertRowid, username, listenbrainz_token: token };
         req.login(user, (err) => {
             if (err) return res.status(500).json({ error: 'Login failed after register' });
             res.json({ user });
@@ -45,6 +57,8 @@ router.post('/register', async (req, res) => {
         }
     }
 });
+
+// ... (Subsonic Register - similar update needed) ...
 
 const subsonicRegisterSchema = z.object({
     username: z.string().min(3),
@@ -68,6 +82,7 @@ router.post('/register/subsonic', async (req, res) => {
         const salt = crypto.randomBytes(6).toString('hex');
         const token = crypto.createHash('md5').update(subsonicPass + salt).digest('hex');
 
+        // ... verifySubsonic call ...
         const isValid = await verifySubsonic(subsonicUrl, subsonicUser, token, salt);
         if (!isValid) {
             return res.status(400).json({ error: 'Invalid Subsonic credentials' });
@@ -80,9 +95,11 @@ router.post('/register/subsonic', async (req, res) => {
             password: encrypt(subsonicPass) // Store encrypted password to regenerate token/salt dynamically
         });
 
-        const result = db.prepare('INSERT INTO users (username, password_hash, subsonic_url, subsonic_auth) VALUES (?, ?, ?, ?)').run(username, hash, subsonicUrl, authData);
+        const lbToken = crypto.randomBytes(16).toString('hex');
 
-        const user = { id: result.lastInsertRowid, username };
+        const result = db.prepare('INSERT INTO users (username, password_hash, subsonic_url, subsonic_auth, listenbrainz_token) VALUES (?, ?, ?, ?, ?)').run(username, hash, subsonicUrl, authData, lbToken);
+
+        const user = { id: result.lastInsertRowid, username, listenbrainz_token: lbToken };
         req.login(user, (err) => {
             if (err) return res.status(500).json({ error: 'Login failed after register' });
             res.json({ user });
@@ -107,7 +124,9 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', (req, res) => {
     if (req.isAuthenticated()) {
-        res.json({ user: req.user });
+        // Backfill if missing (for existing users who log in)
+        const user = ensureListenBrainzToken(req.user);
+        res.json({ user });
     } else {
         res.status(401).json({ error: 'Not authenticated' });
     }

@@ -26,6 +26,7 @@ export function initDatabase() {
             spotify_refresh_token TEXT,
             subsonic_url TEXT,
             subsonic_auth TEXT, -- Encrypted JSON { username, token/password, salt }
+            listenbrainz_token TEXT UNIQUE, -- Generated API Token for external scrobblers
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -76,6 +77,7 @@ export function initDatabase() {
     try { db.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run(); } catch (e) { }
     try { db.prepare('ALTER TABLE play_history ADD COLUMN listened_duration_ms INTEGER DEFAULT 0').run(); } catch (e) { }
     try { db.prepare('ALTER TABLE tracks ADD COLUMN raw_data TEXT').run(); } catch (e) { }
+    try { db.prepare('ALTER TABLE users ADD COLUMN listenbrainz_token TEXT UNIQUE').run(); } catch (e) { }
 
     console.log('Database initialized.');
 }
