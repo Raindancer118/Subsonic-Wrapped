@@ -253,8 +253,8 @@ router.post('/ai-analysis', async (req, res) => {
         const age = stats.listeningAge?.avg_year || 'Unknown';
 
         // Tasks
-        const roastPrompt = `Roast this user's music taste based on: Top Artists: ${artistNames}. Top Genres: ${genreNames}. Total Listening: ${minutes} minutes. Be snarky, funny, and slightly mean but lighthearted. Max 50 words.`;
-        const vibePrompt = `Describe this user's musical year in 2 poetic, atmospheric sentences based on: Top Artists: ${artistNames}. Top Genres: ${genreNames}. Audio Day: ${timeOfDay}. Listening Era: ${age}s. Max 40 words.`;
+        const roastPrompt = `Roast this user's music taste based on: Top Artists: ${artistNames}. Top Genres: ${genreNames}. Total Listening: ${minutes} minutes. Be snarky, funny, and slightly mean but lighthearted. Max 1 sentence.`;
+        const vibePrompt = `Summarize this user's musical vibe in exactly 3-5 words. Be poetic but concise. Based on: Top Artists: ${artistNames}. Top Genres: ${genreNames}. Audio Day: ${timeOfDay}. Listening Era: ${age}s.`;
 
         // Parallel Execution
         const [roast, vibe] = await Promise.all([
