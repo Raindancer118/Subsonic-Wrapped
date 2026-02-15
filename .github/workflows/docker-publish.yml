@@ -17,6 +17,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        with:
+          fetch-depth: 0
       
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -45,8 +49,91 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       
+      - name: Generate Release Notes with GitHub Copilot
+        if: startsWith(github.ref, 'refs/tags/')
+        id: copilot_notes
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          CURRENT_TAG="${{ github.ref_name }}"
+          
+          COMMITS=$(git log --pretty=format:"- %s (%h) by %an" $PREVIOUS_TAG..HEAD)
+          FILES_CHANGED=$(git diff --name-only $PREVIOUS_TAG..HEAD | head -30)
+          DIFF_STATS=$(git diff --stat $PREVIOUS_TAG..HEAD)
+          
+          CONTEXT="Repository: ${{ github.repository }}\nPrevious: $PREVIOUS_TAG\nCurrent: $CURRENT_TAG\n\nCommits:\n$COMMITS\n\nFiles:\n$FILES_CHANGED\n\nStats:\n$DIFF_STATS"
+          
+          ESCAPED_CONTEXT=$(echo "$CONTEXT" | jq -Rs .)
+          
+          RELEASE_NOTES=$(curl -s -X POST https://models.inference.ai.azure.com/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{
+              \"messages\": [
+                {
+                  \"role\": \"system\",
+                  \"content\": \"You are an expert technical writer. Generate professional release notes in Markdown with sections: What's New, Bug Fixes, Improvements, Breaking Changes (if any), and Docker Usage. Be clear and focus on user impact.\"
+                },
+                {
+                  \"role\": \"user\",
+                  \"content\": $ESCAPED_CONTEXT
+                }
+              ],
+              \"model\": \"gpt-4o\",
+              \"temperature\": 0.7,
+              \"max_tokens\": 2000
+            }" | jq -r '.choices[0].message.content // empty')
+          
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="## Changes in this Release\n\n$COMMITS"
+          fi
+          
+          echo "RELEASE_NOTES<<EOFMARKER" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOFMARKER" >> $GITHUB_OUTPUT
+      
+      - name: Create Release Body
+        if: startsWith(github.ref, 'refs/tags/')
+        id: release_body
+        run: |
+          cat > /tmp/release_body.md << 'ENDOFBODY'
+          ${{ steps.copilot_notes.outputs.RELEASE_NOTES }}
+          
+          ---
+          
+          ## 📦 Installation
+          
+          ### Docker
+          ENDOFBODY
+          
+          echo '```bash' >> /tmp/release_body.md
+          echo 'docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}' >> /tmp/release_body.md
+          echo '```' >> /tmp/release_body.md
+          
+          cat >> /tmp/release_body.md << 'ENDOFBODY'
+          
+          ### Docker Compose
+          ENDOFBODY
+          
+          echo '```yaml' >> /tmp/release_body.md
+          echo 'services:' >> /tmp/release_body.md
+          echo '  app:' >> /tmp/release_body.md
+          echo '    image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}' >> /tmp/release_body.md
+          echo '```' >> /tmp/release_body.md
+          
+          cat >> /tmp/release_body.md << 'ENDOFBODY'
+          
+          ## 🔗 Links
+          - [Container Registry](${{ github.server_url }}/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})
+          - [Full Changelog](${{ github.server_url }}/${{ github.repository }}/compare/${{ github.ref_name }}...main)
+          ENDOFBODY
+          
+          echo "BODY<<ENDOFFILE" >> $GITHUB_OUTPUT
+          cat /tmp/release_body.md >> $GITHUB_OUTPUT
+          echo "ENDOFFILE" >> $GITHUB_OUTPUT
+      
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body: ${{ steps.release_body.outputs.BODY }}
+          generate_release_notes: false
