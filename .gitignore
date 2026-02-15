@@ -13,6 +13,7 @@ build/
 .env.production
 .env.development
 .env.local
+config.yml
 
 # Database
 *.db

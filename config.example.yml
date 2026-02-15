@@ -1,0 +1,33 @@
+# Global Configuration
+# Copy this file to config.yml and fill in your details
+
+app:
+  port: 3000
+  secret: "change_me_to_a_long_random_string" # Used for session signing and encryption
+  env: "production"
+
+database:
+  path: "./data/app.db"
+
+spotify:
+  clientId: "" # Get from Spotify Developer Dashboard
+  clientSecret: ""
+  redirectUri: "https://your-domain.com/api/auth/spotify/callback" # Be aware that spotify does not accept localhost and http.
+
+subsonic:
+  # Add your Subsonic/Navidrome servers here
+  my_server:
+    url: "https://music.example.com"
+    username: "user"
+    legacyAuth: false # Set to true if server requires MD5 of password (e.g. old Subsonic)
+    useScrobbleOnly: true # If true, disables polling and relies on external scrobble pushes. We recommend leaving this as true.
+
+logging:
+  level: info
+
+scrobble:
+  threshold: 30 # Seconds to count as a play
+
+polling:
+  spotify: 300 # Seconds (5m)
+  subsonic: 120 # Seconds (2m)
