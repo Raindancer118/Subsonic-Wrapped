@@ -1,0 +1,23 @@
+{
+    "debug": true,
+    "logging": {
+        "level": "debug"
+    },
+    "sources": [
+        {
+            "name": "Navidrome-Ingest",
+            "clients": [
+                "SubsonicWrapped-Local"
+            ],
+            "type": "listenbrainz"
+        }
+    ],
+    "clients": [
+        {
+            "name": "SubsonicWrapped-Local",
+            "type": "maloja",
+            "url": "http://app:3000/api/listenbrainz",
+            "token": "REPLACE_WITH_YOUR_TOKEN"
+        }
+    ]
+}

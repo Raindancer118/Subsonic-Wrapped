@@ -17,3 +17,11 @@ services:
       # - SPOTIFY_CLIENT_SECRET=...
       # - ENCRYPTION_KEY=...
     restart: unless-stopped
+
+  multi-scrobbler:
+    image: foxxmd/multi-scrobbler:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./multi-scrobbler:/config
+    restart: unless-stopped
