@@ -78,6 +78,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/listenbrainz', listenbrainzRoutes);
 app.use('/api/wrapped', wrappedRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/listenbrainz', listenbrainzRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
     res.send('Spotify/Subsonic Stats API');
@@ -103,18 +105,9 @@ if (config.app.env !== 'test') { // Don't start in tests
 
 // Serve Frontend in Production
 if (config.app.env === 'production') {
-    const publicPath = path.resolve(__dirname, '../public');
-
-    // Serve static files
-    app.use(express.static(publicPath));
-
-    // SPA Catch-all: ONLY for non-file requests
-    app.get('*', (req: Request, res: Response) => {
-        // If it looks like a file (has an extension), don't serve index.html
-        if (req.path.includes('.')) {
-            return res.status(404).send('Not found');
-        }
-        res.sendFile(path.join(publicPath, 'index.html'));
+    app.use(express.static(path.join(__dirname, '../public')));
+    app.get(/.*/, (req: Request, res: Response) => {
+        res.sendFile(path.join(__dirname, '../public/index.html'));
     });
 }
 
