@@ -59,7 +59,7 @@ router.get('/current', async (req, res) => {
             if (diff < 1000 * 60 * 10) { // 10 minutes
 
                 // Try to find rich metadata from DB if we have seen this track before
-                const dbTrack = db.prepare('SELECT image_url, year, genre, bitrate, codec FROM tracks WHERE title = ? AND artist = ?').get(lbNowPlaying.title, lbNowPlaying.artist) as any;
+                const dbTrack = db.prepare('SELECT image_url, year, genre, bitrate, codec FROM tracks WHERE title = ? COLLATE NOCASE AND artist = ? COLLATE NOCASE').get(lbNowPlaying.title, lbNowPlaying.artist) as any;
 
                 currentTrack = {
                     title: lbNowPlaying.title,
