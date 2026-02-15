@@ -35,7 +35,7 @@ export default function Settings() {
 
     const loadAiSettings = async () => {
         try {
-            const res = await client.get('/api/settings/ai');
+            const res = await client.get('/settings/ai');
             if (res.data.configured) {
                 setAiConfig(prev => ({ ...prev, provider: res.data.provider }));
             }
@@ -47,7 +47,7 @@ export default function Settings() {
     const saveAiSettings = async () => {
         setLoading(true);
         try {
-            await client.post('/api/settings/ai', aiConfig);
+            await client.post('/settings/ai', aiConfig);
             setMessage({ type: 'success', text: 'AI Settings saved successfully!' });
         } catch (err: any) {
             setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to save AI settings.' });
@@ -59,7 +59,7 @@ export default function Settings() {
     const testAiConnection = async () => {
         setTesting(true);
         try {
-            const res = await client.post('/api/settings/ai/test', aiConfig);
+            const res = await client.post('/settings/ai/test', aiConfig);
             if (res.data.success) {
                 setMessage({ type: 'success', text: 'AI Connection Successful!' });
             } else {

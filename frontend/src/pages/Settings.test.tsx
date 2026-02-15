@@ -14,7 +14,7 @@ describe('Settings Page', () => {
             if (url === '/auth/me') return Promise.resolve({ data: { user: {} } });
             if (url === '/settings/connections') return Promise.resolve({ data: { spotify: false, subsonic: [] } });
             if (url === '/settings/kb') return Promise.resolve({ data: [] });
-            if (url === '/api/settings/ai') return Promise.resolve({ data: { configured: false } });
+            if (url === '/settings/ai') return Promise.resolve({ data: { configured: false } });
             return Promise.reject(new Error('not found'));
         });
 
@@ -36,7 +36,7 @@ describe('Settings Page', () => {
             // FORCE UNDEFINED for arrays to trigger the crash if safety checks are missing
             if (url === '/settings/connections') return Promise.resolve({ data: { spotify: false, subsonic: undefined } });
             if (url === '/settings/kb') return Promise.resolve({ data: undefined });
-            if (url === '/api/settings/ai') return Promise.resolve({ data: { configured: false } });
+            if (url === '/settings/ai') return Promise.resolve({ data: { configured: false } });
             return Promise.reject(new Error('not found'));
         });
 
