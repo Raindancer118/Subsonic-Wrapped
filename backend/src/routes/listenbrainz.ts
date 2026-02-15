@@ -19,7 +19,7 @@ const listenSchema = z.object({
                 release_mbid: z.string().optional(),
                 artist_mbids: z.array(z.string()).optional(),
             }).optional(),
-            additional_info: z.record(z.any()).optional()
+            additional_info: z.record(z.string(), z.any()).optional()
         })
     }))
 });

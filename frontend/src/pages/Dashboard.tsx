@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
-import { LogOut, Music, Clock, BarChart2 } from 'lucide-react';
+import { LogOut, Music, Clock, BarChart2, Settings as SettingsIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 // import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard: React.FC = () => {
@@ -54,6 +55,12 @@ const Dashboard: React.FC = () => {
                         <p className="text-gray-400 text-sm">Welcome back, {user?.username}</p>
                     </div>
                 </div>
+                <Link
+                    to="/settings"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
+                >
+                    <SettingsIcon size={18} /> Settings
+                </Link>
                 <button
                     onClick={logout}
                     className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
