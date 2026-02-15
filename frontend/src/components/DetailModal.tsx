@@ -141,7 +141,6 @@ const DetailModal: React.FC<DetailModalProps> = ({ type, data, onClose }) => {
                     )}
                 </div>
             </div>
-
             );
 };
 
