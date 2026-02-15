@@ -1,44 +1,53 @@
-# AI Integration
+# 🧠 AI Integration & LLM Services
 
-## Overview
-The AI Integration feature allows Subsonic Wrapped to utilize Large Language Models (LLMs) to enhance the user experience. Currently, it supports **Google Gemini** and **Groq**.
+Subsonic Wrapped leverages modern Large Language Models (LLMs) to transform raw listening data into a rich, narrative experience. By integrating with high-performance inference engines, we provide insights that go beyond simple charts.
 
-## Features
+## 🤖 Supported Providers
 
-### 1. Genre Classification Fallback
-When a track is ingested via ListenBrainz or Scrobble but lacks genre information from primary sources (Spotify/MusicBrainz), the system queries the configured AI provider to determine the most likely genre.
+The application core logic is provider-agnostic, currently offering first-class support for:
 
-**Logic:**
-- Triggered in `enrichTrack` (Services).
-- Prompt: "What is the primary music genre of the song 'Title' by 'Artist'?"
-- Result: Stored in `tracks` table.
+### 1. Google Gemini
+-   **Model**: Optimized for `gemini-1.5-flash`.
+-   **Capabilities**: High context window, excellent for long-term historical analysis.
+-   **Setup**: Requires a free/tier API key from [Google AI Studio](https://aistudio.google.com/).
 
-### 2. Wrapped "Roast My Taste"
-Generates a humorous, snarky commentary on the user's listening habits for the requested year.
+### 2. Groq (Llama 3 / Mixtral)
+-   **Model**: Defaults to `llama3-8b-8192` or `mixtral-8x7b-32768`.
+-   **Capabilities**: Extreme inference speed, perfect for real-time vibe checks.
+-   **Setup**: Requires an API key from [Groq Console](https://console.groq.com/).
 
-**Logic:**
-- Endpoint: `POST /api/wrapped/ai-analysis`
-- Context Provided: Top 5 Artists, Top 5 Genres, Total Minutes.
-- Result: Stored in `settings` table (key: `wrapped_roast_YYYY`) to avoid re-generation costs.
+---
 
-### 3. Wrapped "Vibe Check"
-Generates a poetic description of the user's musical year.
+## 🚀 AI-Driven Features
 
-**Logic:**
-- Endpoint: `POST /api/wrapped/ai-analysis`
-- Context Provided: Top Artists, Time of Day (Audio Day), Listening Age.
-- Result: Stored in `settings` table (key: `wrapped_vibe_YYYY`).
+### 1. Metadata Enrichment (Genre Fallback)
+When a track is ingested but lacks genre data from Spotify or the source file, the **AI Service** is invoked as a high-confidence fallback.
+-   **Logic**: `Services.enrichTrack` triggers a prompt: *"What is the primary music genre of the song '${title}' by '${artist}'? Return ONLY the genre name."*
+-   **Benefit**: Ensures that "Genre Distribution" charts are never empty, even for obscure or local tracks.
 
-## Configuration
-AI settings are stored in the database (or `config.yml` override).
-- **Provider**: `gemini` | `groq`
-- **API Key**: String (AES-256 Encrypted in DB)
+### 2. The "Wrapped" Roast
+A fan-favorite feature that provides a cynical, humorous take on your music taste.
+-   **Injected Context**: Top 5 Artists, Top 5 Genres, Total Minutes, and Listening Age.
+-   **Prompt Tuning**: We use a specialized system prompt that instructs the AI to be "a snarky music critic who holds nothing back."
+-   **Persistence**: Results are cached in the `settings` table as `wrapped_roast_YYYY` to avoid redundant API costs.
 
-## Security
-- **Encryption**: API Keys are encrypted at rest using `AES-256-GCM` with a unique IV.
-- **Keys**: Derived from `config.app.secret`.
-- **Logging**: API Keys are redacted/never logged.
+### 3. Poetic "Vibe Check"
+Conversely, the "Vibe Check" provides a deep, atmospheric description of your year's musical journey.
+-   **Injected Context**: Audio Day patterns (e.g., "Night Owl" tendencies) and top lyrical themes detected via artist names.
+-   **Prompt Tuning**: Instructs the AI to be "evocative, soulful, and appreciative of the user's unique journey."
 
-## Technical Details
-- **Service**: `backend/src/services/ai.ts`
-- **Dependencies**: `@google/generative-ai`, `groq-sdk`
+---
+
+## 🛡 Security & Reliability
+
+### API Key Protection (AES-256-GCM)
+We treat AI API keys as high-value secrets.
+-   **Encryption**: Keys are encrypted before being stored in the database using the internal `app.secret`.
+-   **Rotation**: If you change your `app.secret` in `config.yml`, all stored keys will be invalidated to prevent plaintext exposure during configuration drifts.
+
+### Cost Control & Debouncing
+-   **Caching**: Every AI response for "Wrapped" is stored permanently. It will only be re-generated if requested by the user.
+-   **Error Handling**: If an AI request fails (rate limit, invalid key), the system gracefully degrades. Charts will simply show "Unknown" or the AI section will be omitted from the UI without crashing the application.
+
+### Multi-Model Fallback
+The `AIService.ts` is designed for future expansion, allowing for per-user model selection and custom system instructions.

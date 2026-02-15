@@ -1,121 +1,137 @@
-# 🛠 Setup Guide
+# 🛠 Comprehensive Setup & Deployment Guide
 
-Follow these instructions to get your Subsonic Wrapped instance up and running.
+This guide provides exhaustive instructions for deploying, configuring, and maintaining your Subsonic Wrapped instance.
 
-## 📋 Requirements
+## 📋 Prerequisites
 
--   **Docker** & **Docker Compose**
--   **Spotify Developer Account** (to create an App and get credentials)
--   **Subsonic-compatible server** (Navidrome, Jellyfin, Gonic, etc.)
--   **Node.js 20+** (Optional: only if you want to develop locally)
+### System Requirements
+- **Docker Engine**: 24.0.0+
+- **Docker Compose**: 2.20.0+ (V2 is required)
+- **Memory**: Minimum 512MB RAM (1GB recommended for AI features)
+- **Storage**: ~200MB for the application images plus database growth (SQLite).
 
-## 🚀 Installation
-
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/tom/subsonic-wrapped.git
-    cd subsonic-wrapped
-    ```
-
-2.  **Initialize Configuration**:
-    ```bash
-    cp config.example.yml config.yml
-    mkdir -p data
-    ```
-
-3.  **Configure the Application**:
-    Open `config.yml` in your favorite editor and fill in the required fields. (See [Configuration](#-configuration) below).
-
-4.  **Launch**:
-    ```bash
-    ./launch.sh
-    ```
-    The `launch.sh` script will automatically:
-    -   Extract the port from your `config.yml`.
-    -   Build the Docker container.
-    -   Start the stack using Docker Compose.
-
-5.  **Access the Dashboard**:
-    Navigate to `http://localhost:3000` (or the port you configured).
+### External Accounts
+- **Spotify Developer**: Required for the Spotify integration.
+- **Subsonic Server**: Navidrome (recommended), Jellyfin, or Gonic.
+- **AI Provider**: Gemini (Google AI Studio) or Groq API (Optional).
 
 ---
 
-## ⚙️ Configuration
+## 🚀 Step-by-Step Installation
 
-The `config.yml` file is the heart of the application. You can also use environment variables in your `docker-compose.yml` to override these values.
+### 1. Repository Initialization
+Clone the repository and prepare the working directory:
+```bash
+git clone https://github.com/tom/subsonic-wrapped.git
+cd subsonic-wrapped
+mkdir -p data
+```
 
-### 🌐 App Settings
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `app.port` | The port the application will listen on. | `3000` |
-| `app.secret` | A long, random string used for session signing and encryption. | `change_me` |
-| `app.env` | Environment mode (`production` or `development`). | `production` |
+### 2. Configuration Preparation
+The application relies on a hierarchical configuration system. Values in `config.yml` take precedence over environment variables in most cases.
+```bash
+cp config.example.yml config.yml
+```
 
-### 📂 Database Settings
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `database.path` | Path to the SQLite database file. | `./data/app.db` |
-
-### 🎵 Spotify Integration
-| Variable | Description | Note |
-| :--- | :--- | :--- |
-| `spotify.clientId` | Your Spotify Client ID. | Get from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). |
-| `spotify.clientSecret` | Your Spotify Client Secret. | |
-| `spotify.redirectUri` | Must match the URI in your Spotify App settings. | e.g., `https://your-domain.com/api/auth/spotify/callback` |
-
-> [!IMPORTANT]
-> Spotify's API requires a valid `redirectUri`. Localhost is supported for development, but ensure it matches exactly in both the dashboard and your `config.yml`.
-
-### 📂 Subsonic Servers
-You can add multiple servers under the `subsonic` key:
-```yaml
-subsonic:
-  my_navidrome:
-    url: "https://music.example.com"
-    username: "your_username"
-    legacyAuth: false # Use true for older Subsonic versions (MD5 auth)
-    useScrobbleOnly: true # Highly recommended: rely on incoming scrobbles
+### 3. Service Launch
+The provided `launch.sh` is a convenience wrapper that extracts the `PORT` from your config and handles the Docker build/up cycle.
+```bash
+chmod +x launch.sh
+./launch.sh
 ```
 
 ---
 
-## 📻 Multi-Scrobbler Integration
+## ⚙️ Configuration Reference (`config.yml`)
 
-To sync your listening history from Navidrome/Jellyfin in real-time, use the included **Multi-Scrobbler** setup.
+### 🌐 Application Core (`app:`)
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| `port` | Integer | The internal and external port for the web server (Default: `3000`). |
+| `secret` | String | **Critical**: Used for session signing and AES-256-GCM encryption of your API keys. |
+| `env` | String | `production` or `development`. Affects logging verbosity and error exposure. |
 
-1.  **Get your API Token**:
-    -   Open the Subsonic Wrapped Dashboard.
-    -   Go to **Settings**.
-    -   Copy your **ListenBrainz API Token**.
+### 📂 Persistence (`database:`)
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| `path` | String | Path to the SQLite database. Usually `./data/app.db`. |
 
-2.  **Configure Multi-Scrobbler**:
-    -   Open `multi-scrobbler/config.json`.
-    -   Replace `"REPLACE_WITH_YOUR_TOKEN"` with your token.
-    -   Restart the scrobbler: `docker compose restart multi-scrobbler`.
+### 🎵 Spotify Integration (`spotify:`)
+To enable Spotify, create an app at the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+| Key | Description |
+| :--- | :--- |
+| `clientId` | Your Spotify Application Client ID. |
+| `clientSecret` | Your Spotify Application Client Secret. |
+| `redirectUri` | The callback URL. **Must match exactly** in the Spotify Dashboard. (e.g., `https://wrapped.example.com/api/auth/spotify/callback`) |
 
-3.  **Navidrome Webhook**:
-    Add these variables to your Navidrome `docker-compose.yml`:
-    ```yaml
-    ND_LISTENBRAINZ_ENABLED: "true"
-    ND_LISTENBRAINZ_BASEURL: "http://multi-scrobbler:9000/api/listenbrainz/"
-    ND_LISTENBRAINZ_APIKEY: "any_token"
-    ```
+### 📡 Subsonic Servers (`subsonic:`)
+You can define multiple servers as a dictionary.
+```yaml
+subsonic:
+  primary:
+    url: "https://navidrome.yoursite.com"
+    username: "music_user"
+    legacyAuth: false # Use true only for very old Subsonic forks.
+    useScrobbleOnly: true # Recommended: Disables polling and relies on webhook pushes.
+```
+
+### ⏲️ Polling & Sync (`polling:`)
+| Key | Default | Description |
+| :--- | :---: | :--- |
+| `spotify` | `300` | Seconds between "Recently Played" syncs (min: 60). |
+| `subsonic` | `120` | Seconds between "Now Playing" checks if `useScrobbleOnly` is false. |
 
 ---
 
-## 🛡 Security Best Practices
+## 📻 Advanced Ingestion: Multi-Scrobbler
 
-As per project standards, we prioritize security:
+Subsonic Wrapped includes a dedicated integration for real-time scrobbling via the ListenBrainz protocol.
 
-1.  **Secrets Management**: Never hardcode secrets. Use `config.yml` (git-ignored) or environment variables.
-2.  **Encryption**: All sensitive tokens (Spotify OAuth) are encrypted at rest using your `app.secret`.
-3.  **Least Privilege**: The application runs under a non-root user within the container.
-4.  **Production Readiness**: Always change the `app.secret` to a strong random string before deploying to production.
+### 1. Token Generation
+1. Log in to your Subsonic Wrapped instance.
+2. Navigate to **Settings** > **Developer**.
+3. Copy your unique **ListenBrainz API Token**.
+
+### 2. Multi-Scrobbler Setup
+Modify `multi-scrobbler/config.json`:
+```json
+{
+  "scrobblers": [
+    {
+      "type": "listenbrainz",
+      "name": "Subsonic Wrapped",
+      "token": "YOUR_COPIED_TOKEN",
+      "url": "http://app:3000/api/listenbrainz"
+    }
+  ]
+}
+```
+
+### 3. Server-Side Webhook (Navidrome)
+Add these environment variables to your Navidrome container:
+```yaml
+ND_LISTENBRAINZ_ENABLED: "true"
+ND_LISTENBRAINZ_BASEURL: "http://multi-scrobbler:9000/api/listenbrainz/"
+ND_LISTENBRAINZ_APIKEY: "any_string"
+```
 
 ---
+
+## 🛡 Security & Hardening
+
+1. **Session Secrets**: Ensure `app.secret` is a cryptographically strong string. Changing this will invalidate all existing sessions and API key encryptions.
+2. **Reverse Proxy**: It is highly recommended to run this behind **Nginx**, **Traefik**, or **Caddy** with TLS.
+3. **Internal Auth**: Subsonic Wrapped uses `Passport.js` with `express-session`. In production, cookies are set to `HttpOnly` and `SameSite: Lax`.
 
 ## ❓ Troubleshooting
 
--   **Spotify Auth Fails**: Verify your `redirectUri` matches exactly in the Spotify Developer Dashboard.
--   **Scrobbles not appearing**: Ensure the Multi-Scrobbler container is running and the token in `multi-scrobbler/config.json` is correct.
--   **Port Conflict**: Change `app.port` in `config.yml` and restart with `./launch.sh`.
+### Spotify Auth Redirect Loop
+- Ensure `redirectUri` in `config.yml` is identical to what is in the Spotify Dashboard.
+- If using a reverse proxy, ensure `X-Forwarded-Proto: https` is correctly set.
+
+### Database is Locked
+- This can happen if multiple processes access the SQLite file. Ensure only one instance of the `app` container is running.
+- In Docker, ensure the `data/` volume has correct permissions (`UID 1000` is usually required for Node.js containers).
+
+### Missing Album Art
+- Check server logs. This usually indicates that the Spotify Client Credentials flow is failing or the API key is invalid.

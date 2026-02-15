@@ -1,50 +1,63 @@
-# Wrapped (Story Mode)
+# ✨ The "Wrapped" Retrospective Engine
 
-## Overview
-The **Wrapped** feature provides users with a comprehensive "Year in Review" style retrospective of their listening habits. It is designed to be an immersive, "story" based experience similar to Spotify Wrapped, available at any time.
+The "Wrapped" feature is the core emotional heart of Subsonic Wrapped. It transforms millions of data points into a cinematic, slide-based journey that captures the essence of a user's musical year.
 
-## Key Metrics
-The feature aggregates data from `play_history` and `tracks` to calculate:
+## 🎞 Story Mode Overview
 
-1.  **Total Listening Time**: Sum of milliseconds played.
-    *   **Filter**: Only counts plays where `listened_duration_ms >= 30,000` (30 seconds).
-2.  **Top Artist**: The artist with the most plays (meeting the 30s criteria).
-3.  **Top Songs**: The 5 most played tracks.
-4.  **Top Genres**: The 5 most played genres.
-5.  **Audio Day**: A breakdown of listening habits by time of day:
-    *   **Morning**: 05:00 - 11:59
-    *   **Afternoon**: 12:00 - 17:59
-    *   **Evening**: 18:00 - 23:59
-    *   **Night**: 00:00 - 04:59
-6.  **Listening Age**: The weighted average release year of all played tracks.
-    *   Formula: `Sum(Year * PlayCount) / TotalPlays`
+Accessed via the `/story` route, Wrapped uses a state-driven carousel to guide users through their history.
+-   **Animations**: Leverages `framer-motion` for physics-based transitions (slides, fades, and scale-ups).
+-   **Audio Integration**: Dynamically plays the user's #1 track in the background for an immersive experience.
+-   **Sharability**: Final slides are optimized for "Screenshot mode" with high-contrast typography and QR code integration.
 
-## Personality Archetypes
-Based on the metrics, users are assigned one of the following archetypes:
+---
 
-*   **The Superfan**: Top artist accounts for >30% of total plays.
-*   **The Loyalist**: Top artist accounts for >20% of total plays.
-*   **The Discoverer**: >80% of tracks played are unique (rarely repeats songs).
-*   **The Explorer**: High diversity of artists (>40% unique artists).
-*   **The Time Traveler**: Average listening age is before 2010.
-*   **The Modernist**: Average listening age is within the last 2 years.
-*   **The Night Owl**: Most listening activity occurs at Night.
-*   **The Early Bird**: Most listening activity occurs in the Morning.
-*   **The 9-to-5er**: Most listening activity occurs in the Afternoon.
-*   **The Genre Hopper**: Listens to >5 major genres.
-*   **The Music Fan**: Default fallback if no specific traits are dominant.
+## 🧬 Personality Archetypes & Algorithms
 
-## Technical Implementation
-### Backend
-*   **Endpoint**: `GET /api/wrapped`
-*   **Parameters**: `year` (optional), `range` ('all' or 'year').
-*   **Database**: Uses optimized SQL queries with strict `WHERE listened_duration_ms >= 30000` clauses.
+Subsonic Wrapped uses a heuristic-based "Listener Archetype" engine. Every year, users are assigned a persona based on the following classification logic:
 
-### Frontend
-*   **Route**: `/story`
-*   **Libraries**: `framer-motion` for slide transitions.
-*   **Components**: `Wrapped.tsx` handles the carousel logic and rendering of individual slides.
+| Archetype | Condition (Heuristic) | Description |
+| :--- | :--- | :--- |
+| **The Superfan** | `Top Artist / Total Plays > 0.30` | You found your muse and didn't look back. |
+| **The Loyalist** | `Top Artist / Total Plays > 0.20` | You have a clear favorite, but keep an open mind. |
+| **The Discoverer** | `Unique Tracks / Total Plays > 0.80` | You rarely listen to the same song twice. |
+| **The Explorer** | `Unique Artists / Total Tracks > 0.40` | Your library is a map of unknown territories. |
+| **The Time Traveler** | `Avg(Release Year) < 2010` | You live in the golden eras of the past. |
+| **The Modernist** | `Avg(Release Year) > Date.Now - 2Y` | You are always at the cutting edge of new releases. |
+| **The Genre Hopper** | `Unique Genres > 6` | Your palette is vast and impossible to pin down. |
+| **The Night Owl** | `Max(Audio Day) == "Night"` | Your best memories happen under the moonlight. |
+| **The Music Fan** | *Fallback* | A balanced listener who enjoys everything. |
 
-## Compliance
-*   **30s Rule**: strictly enforced to prevent skips from skewing data.
-*   **Privacy**: Data is only aggregated for the authenticated user.
+---
+
+## 📈 Metric Calculation Logic
+
+### 1. The 30-Second Threshold
+To ensure statistics reflect *intent* rather than *automated skips*, we enforce a strict threshold:
+`WHERE listened_duration_ms >= 30000`
+This applies to all aggregate calculations, including Top Artists, Top Songs, and Genre Distribution.
+
+### 2. "Listening Age"
+This unique metric calculates the "vintage" of your music taste.
+-   **Formula**: `(Sum of Release Year * Play Count) / Total Plays`
+-   **Significance**: Helps differentiate between listeners of classic rock vs. modern hyperpop.
+
+### 3. Audio Day Segments
+We partition the 24-hour clock into four narrative buckets based on your local timezone:
+-   🌅 **Morning**: 05:00 - 11:59
+-   ☀️ **Afternoon**: 12:00 - 17:59
+-   🌆 **Evening**: 18:00 - 23:59
+-   🌙 **Night**: 00:00 - 04:59
+
+---
+
+## 🧠 AI-Enhanced Features
+
+### The "Roast" and "Vibe Check"
+If enabled, the Wrapped engine passes the following JSON context to the [AI Service](ai-integration.md):
+-   `topArtists`, `topSongs`, `topGenres`, `totalMinutes`, `archetype`.
+
+#### Snarky Roast
+The AI is instructed to be a "pretentious music snob." It looks for contradictions in your data (e.g., listening to Death Metal in the Morning) to create a personalized, humorous critique.
+
+#### Poetic Vibe Check
+Focuses on the emotional arc of your year. It uses the "Listening Age" and "Audio Day" to describe the "flavor" of your musical journey in a soulful, appreciative tone.
