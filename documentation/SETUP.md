@@ -17,28 +17,52 @@ This guide provides exhaustive instructions for deploying, configuring, and main
 
 ---
 
-## 🚀 Step-by-Step Installation
+## 🚀 Deployment Methods
 
-### 1. Repository Initialization
-Clone the repository and prepare the working directory:
-```bash
-git clone https://github.com/tom/subsonic-wrapped.git
-cd subsonic-wrapped
-mkdir -p data
+### Method 1: Pull from GitHub Container Registry (Recommended)
+This is the standard way to deploy Subsonic Wrapped. It uses our pre-built, optimized images.
+
+#### via Docker Compose
+Create a `docker-compose.yml`:
+```yaml
+services:
+  app:
+    image: ghcr.io/raindancer118/subsonic-wrapped:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config.yml:/app/config.yml
+      - ./data:/app/data
+    restart: unless-stopped
 ```
 
-### 2. Configuration Preparation
-The application relies on a hierarchical configuration system. Values in `config.yml` take precedence over environment variables in most cases.
+#### via Docker Run
 ```bash
-cp config.example.yml config.yml
+docker run -d \
+  -p 3000:3000 \
+  -v $(pwd)/config.yml:/app/config.yml \
+  -v $(pwd)/data:/app/data \
+  --name subsonic-wrapped \
+  ghcr.io/raindancer118/subsonic-wrapped:latest
 ```
 
-### 3. Service Launch
-The provided `launch.sh` is a convenience wrapper that extracts the `PORT` from your config and handles the Docker build/up cycle.
-```bash
-chmod +x launch.sh
-./launch.sh
-```
+### Method 2: Build from Source (Development)
+Use this if you want to modify the application or contribute.
+
+1.  **Repository Initialization**
+    ```bash
+    git clone https://github.com/Raindancer118/Subsonic-Wrapped.git
+    cd Subsonic-Wrapped
+    mkdir -p data
+    ```
+
+2.  **Launch with Local Build**
+    The provided `launch.sh` will build the image locally and start the services.
+    ```bash
+    cp config.example.yml config.yml
+    chmod +x launch.sh
+    ./launch.sh
+    ```
 
 ---
 

@@ -41,16 +41,32 @@ In an era of data silos, Subsonic Wrapped gives you total ownership of your list
 
 ## 🏁 Quick Start
 
+### Option A: Official Docker Image (Quickest)
+The absolute fastest way to get started is using the pre-built image from our Container Registry.
+
+1.  Create a `config.yml` based on the [example](config.example.yml).
+2.  Run the application:
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v $(pwd)/config.yml:/app/config.yml \
+  -v $(pwd)/data:/app/data \
+  --name subsonic-wrapped \
+  ghcr.io/raindancer118/subsonic-wrapped:latest
+```
+
+### Option B: Build from Source
+If you want to contribute or customize the code:
+
 ```bash
 # Clone the repository
-git clone https://github.com/tom/subsonic-wrapped.git
-cd subsonic-wrapped
+git clone https://github.com/Raindancer118/Subsonic-Wrapped.git
+cd Subsonic-Wrapped
 
 # Setup configuration
 cp config.example.yml config.yml
-# Edit config.yml with your secrets
 
-# Launch with Docker
+# Launch with local build
 ./launch.sh
 ```
 
