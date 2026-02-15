@@ -22,7 +22,14 @@ import { pollSubsonicNowPlaying } from './services/subsonic';
 const app = express();
 
 // Initialize DB
+// Initialize DB
 initDatabase();
+
+// Debug Middleware: Log all requests
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
 
 // Middleware
 app.use(helmet({
