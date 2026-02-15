@@ -82,15 +82,10 @@ router.delete('/subsonic/:id', (req, res) => {
  */
 router.get('/kb', (req, res) => {
     const kbPath = path.resolve(__dirname, '../../../documentation/knowledge_base');
-    console.log('KB Path resolved to:', kbPath);
     try {
-        if (!fs.existsSync(kbPath)) {
-            console.warn('KB Path does not exist:', kbPath);
-            return res.json([]);
-        }
+        if (!fs.existsSync(kbPath)) return res.json([]);
 
         const files = fs.readdirSync(kbPath).filter(f => f.endsWith('.md'));
-        console.log('KB files found:', files);
         const articles = files.map(f => {
             const content = fs.readFileSync(path.join(kbPath, f), 'utf8');
             const titleMatch = content.match(/^#\s+(.*)/);

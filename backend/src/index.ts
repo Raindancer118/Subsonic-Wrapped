@@ -39,14 +39,7 @@ app.use(helmet({
     originAgentCluster: false
 }));
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow all origins in development or if they match localhost
-        if (!origin || origin.includes('localhost') || config.app.env === 'development') {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: 'http://localhost:5173', // Vite dev server
     credentials: true
 }));
 app.use(express.json());
