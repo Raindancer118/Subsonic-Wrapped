@@ -67,6 +67,7 @@ app.use('/api/scrobble', scrobbleRoutes);
 app.use('/api/player', playerRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/listenbrainz', listenbrainzRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
     res.send('Spotify/Subsonic Stats API');
